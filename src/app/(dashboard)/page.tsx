@@ -81,7 +81,7 @@ export default function DashboardInicio() {
     const checkoutTime = personeroStatus?.asistencia?.fecha_salida ? new Date(personeroStatus.asistencia.fecha_salida).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '';
 
     return (
-      <div className="max-w-4xl mx-auto py-8 px-4 animate-in fade-in slide-in-from-left-8 duration-300">
+      <div className="max-w-4xl mx-auto animate-in fade-in slide-in-from-left-8 duration-300">
         <div className="bg-white border border-[#d0d7de] rounded-2xl shadow-sm p-8 text-center mb-8">
           <div className="w-16 h-16 bg-[#e3fcee] text-[#0b9349] rounded-full flex items-center justify-center mx-auto mb-4">
             <CheckCircleIcon sx={{ fontSize: 32 }} />
@@ -252,7 +252,7 @@ export default function DashboardInicio() {
 
   // VISTA PARA ADMIN Y COORDINADOR
   return (
-    <div className="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8 animate-in fade-in slide-in-from-left-8 duration-300">
+    <div className="max-w-7xl mx-auto animate-in fade-in slide-in-from-left-8 duration-300">
 
       <div className="mb-8">
         <h1 className="text-[24px] md:text-[28px] font-extrabold text-[#172b4d] tracking-tight">Centro de Operaciones</h1>

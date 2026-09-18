@@ -50,7 +50,7 @@ export default function DashboardLayoutWrapper({
                     </button>
                 </div>
                 
-                <div className="flex-1 p-[15px] md:p-[26px]">
+                <div className="flex-1 p-4 sm:p-6 lg:p-8 relative">
                     {children}
                 </div>
             </main>

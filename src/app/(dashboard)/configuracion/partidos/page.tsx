@@ -79,7 +79,7 @@ export default function PartidosPage() {
     return (
         <div className="flex h-full flex-col">
             {/* Header */}
-            <div className="flex items-center justify-between px-6 py-4">
+            <div className="flex items-center justify-between mb-5">
                 <div>
                     <h1 className="text-[24px] md:text-[28px] font-extrabold text-[#172b4d] tracking-tight">Organizaciones Políticas</h1>
                     <div className="mt-1 flex items-center text-[13px] text-[#52637d]">
@@ -131,7 +131,7 @@ export default function PartidosPage() {
             />
 
             {/* Contenido Principal */}
-            <div className="flex-1 overflow-auto bg-[#f4f5f7] p-6">
+            <div className="flex-1 overflow-auto bg-[#f4f5f7]">
                 {!activeElection && !loading ? (
                 <div className="rounded-xl border border-amber-200 bg-amber-50 p-6 text-center">
                     <h3 className="text-base font-bold text-amber-800 mb-2">No hay ninguna Elección Activa</h3>

@@ -92,7 +92,7 @@ export default function AuditoriaPage() {
   }
 
   return (
-    <div className="max-w-[1400px] mx-auto py-6 px-4 sm:px-6 lg:px-8 animate-in fade-in slide-in-from-bottom-4 duration-500 min-h-[calc(100vh-80px)]">
+    <div className="max-w-[1400px] mx-auto  animate-in fade-in slide-in-from-bottom-4 duration-500 min-h-[calc(100vh-80px)]">
       <div className="mb-6 shrink-0">
         <h1 className="text-[24px] md:text-[28px] font-extrabold text-[#172b4d] tracking-tight flex items-center gap-2">
           <FactCheckIcon fontSize="large" className="text-blue-600" />

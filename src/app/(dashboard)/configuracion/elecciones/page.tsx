@@ -82,7 +82,7 @@ export default function EleccionesPage() {
     }, []);
 
     return (
-        <div className="mx-auto max-w-6xl p-5">
+        <div className="mx-auto max-w-6xl">
             {/* Encabezado */}
             <div className="mb-6 flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
                 <div>

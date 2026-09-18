@@ -112,7 +112,7 @@ export default function ConfiguracionPage() {
     });
 
     return (
-        <div className="mx-auto max-w-6xl p-5">
+        <div className="mx-auto max-w-6xl">
 
             {/* Encabezado */}
             <div className="mb-6 flex items-start justify-between">

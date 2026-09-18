@@ -162,7 +162,7 @@ export default function PersonerosPage() {
   return (
     <div className="flex h-full flex-col">
       {/* Encabezado (Estilo Candidatos) */}
-      <div className="flex items-center justify-between px-6 py-4">
+      <div className="flex items-center justify-between mb-5">
         <div>
           <h1 className="text-[24px] md:text-[28px] font-extrabold text-[#172b4d] tracking-tight">
             Directorio de Usuarios
@@ -195,7 +195,7 @@ export default function PersonerosPage() {
       />
 
       {/* Contenedor Principal */}
-      <div className="flex-1 overflow-auto bg-[#f4f5f7] p-6">
+      <div className="flex-1 overflow-auto bg-[#f4f5f7]">
         <div className="mx-auto max-w-6xl">
           {/* Tabla de Usuarios */}
           <div className="rounded-2xl border border-line bg-white shadow-[0_2px_10px_rgba(0,0,0,0.02)] overflow-hidden flex flex-col h-full">
@@ -246,10 +246,10 @@ export default function PersonerosPage() {
                           <img
                             src={p.image}
                             alt={p.name}
-                            className="w-10 h-10 rounded-full object-cover border border-[#dfe1e6]"
+                            className="w-10 h-10 flex-shrink-0 rounded-full object-cover border border-[#dfe1e6]"
                           />
                         ) : (
-                          <div className="w-10 h-10 rounded-full bg-[#f4f5f7] border border-[#dfe1e6] flex items-center justify-center text-[#172b4d] font-bold text-sm">
+                            <div className="w-10 h-10 flex-shrink-0 rounded-full bg-[#f4f5f7] border border-[#dfe1e6] flex items-center justify-center text-[#172b4d] font-bold text-sm">
                             {p.name.charAt(0)}{p.lastname.charAt(0)}
                           </div>
                         )}

@@ -87,7 +87,7 @@ export default function AjustesGeneralesPage() {
   const InputClass = "w-full p-2 px-3 bg-white border border-[#d0d7de] rounded-md outline-none focus:border-[#0969da] focus:ring-1 focus:ring-[#0969da] transition-colors text-sm shadow-[inset_0_1px_2px_rgba(0,0,0,0.075)]";
 
   return (
-    <div className="max-w-[768px] mx-auto py-8 px-4 animate-in fade-in duration-300">
+    <div className="max-w-[768px] mx-auto animate-in fade-in duration-300">
       <div className="mb-6">
         <h1 className="text-[24px] md:text-[28px] font-extrabold text-[#172b4d] tracking-tight">Ajustes Generales</h1>
         <p className="text-[#57606a] mt-1 text-sm">

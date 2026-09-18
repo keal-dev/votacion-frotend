@@ -91,7 +91,7 @@ export default function CandidatosPage() {
     return (
         <div className="flex h-full flex-col">
             {/* Header */}
-            <div className="flex items-center justify-between px-6 py-4">
+            <div className="flex items-center justify-between mb-5">
                 <div>
                     <h1 className="text-[24px] md:text-[28px] font-extrabold text-[#172b4d] tracking-tight">Candidatos</h1>
                     <div className="mt-1 flex items-center text-[13px] text-[#52637d]">
@@ -151,7 +151,7 @@ export default function CandidatosPage() {
             />
 
             {/* Contenido Principal */}
-            <div className="flex-1 overflow-auto bg-[#f4f5f7] p-6">
+            <div className="flex-1 overflow-auto bg-[#f4f5f7]">
                 {loading ? (
                     <div className="flex h-full items-center justify-center">
                         <div className="h-8 w-8 animate-spin rounded-full border-4 border-blue-600 border-t-transparent"></div>

@@ -46,7 +46,6 @@ export default function LoginPage() {
                 router.push("/");
             }
         } catch (err: any) {
-            console.error(err);
             setError(err.response?.data?.message || "Error al iniciar sesión. Verifique sus credenciales.");
         } finally {
             setLoading(false);

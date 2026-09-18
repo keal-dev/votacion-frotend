@@ -74,20 +74,15 @@ export default function AsignacionesPage() {
   );
 
   return (
-    <div className="flex h-full flex-col">
-      <div className="flex items-center justify-between px-6 py-4">
+    <div className="max-w-7xl mx-auto flex h-full flex-col animate-in fade-in slide-in-from-left-8 duration-300 w-full">
+      <div className="flex items-center justify-between mb-5">
         <div className="title">
           <h1 className="text-[24px] md:text-[28px] font-extrabold text-[#172b4d] tracking-tight">Asignación de Mesas a Personeros</h1>
           <p className="text-[13px] text-[#52637d] mt-1">Selecciona un personero y asigna las mesas que tendrá a su cargo.</p>
         </div>
-        <div className="mt-1 flex items-center text-[13px] text-[#52637d]">
-            <span className="font-medium text-[#52637d]">Personeros</span>
-            <span className="mx-2">/</span>
-            <span className="font-bold text-blue-600">Asignaciones</span>
-        </div>
       </div>
 
-      <div className="flex-1 overflow-auto bg-[#f4f5f7] p-6">
+      <div className="flex-1 overflow-auto bg-[#f4f5f7]">
         {!activeElection && !loading ? (
            <div className="flex h-full flex-col items-center justify-center rounded-xl border border-line bg-white p-8 text-center shadow-sm">
              <div className="mb-4 rounded-full bg-yellow-50 p-4 text-yellow-500">
@@ -164,22 +159,20 @@ export default function AsignacionesPage() {
             </div>
 
             <div className="bg-white border border-line rounded-2xl flex flex-col shadow-[0_2px_10px_rgba(0,0,0,0.02)] overflow-hidden">
-              <div className="border-b border-line px-5 py-3 bg-[#f8fafc] flex justify-between items-center">
+                  <div className="border-b border-line px-5 py-3 bg-[#f8fafc] flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 sm:gap-0">
                 <h2 className="text-[15px] font-bold text-[#172b4d]">Asignar mesas</h2>
-                <div className="flex items-center gap-4">
-                  <div className="flex items-center gap-2 bg-white px-3 py-1.5 rounded-lg border border-line shadow-sm">
-                    <span className="text-[16px] leading-none">📊</span>
-                    <div>
-                      <p className="text-[9px] font-bold text-[#52637d] uppercase tracking-wider leading-none mb-0.5">Total Mesas</p>
-                      <p className="text-[13px] font-black text-[#172b4d] leading-none">{mesas.length}</p>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2 bg-white px-3 py-1.5 rounded-lg border border-line shadow-sm">
-                    <span className="text-[16px] leading-none">✅</span>
-                    <div>
-                      <p className="text-[9px] font-bold text-[#52637d] uppercase tracking-wider leading-none mb-0.5">Mesas Asignadas</p>
-                      <p className="text-[13px] font-black text-[#0b9349] leading-none">{mesas.filter(m => m.personero !== null).length}</p>
-                    </div>
+                    <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
+                      <div className="flex items-center gap-2 bg-slate-100 px-3 py-1.5 rounded-full border border-slate-200">
+                        <span className="text-[11px] font-bold text-slate-600 uppercase tracking-wider">Total Mesas</span>
+                        <span className="bg-white text-slate-800 text-[12px] font-black px-2 py-0.5 rounded-full shadow-[0_1px_2px_rgba(0,0,0,0.05)]">
+                          {mesas.length}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-2 bg-emerald-50 px-3 py-1.5 rounded-full border border-emerald-200">
+                        <span className="text-[11px] font-bold text-emerald-700 uppercase tracking-wider">Asignadas</span>
+                        <span className="bg-white text-emerald-700 text-[12px] font-black px-2 py-0.5 rounded-full shadow-[0_1px_2px_rgba(0,0,0,0.05)]">
+                          {mesas.filter(m => m.personero !== null).length}
+                        </span>
                   </div>
                 </div>
               </div>

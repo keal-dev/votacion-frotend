@@ -6,6 +6,10 @@ import axiosInstance from "@/utils/axios";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import VisibilityIcon from '@mui/icons-material/Visibility';
 import CloseIcon from '@mui/icons-material/Close';
+import ViewModuleIcon from '@mui/icons-material/ViewModule';
+import FactCheckIcon from '@mui/icons-material/FactCheck';
+import PendingActionsIcon from '@mui/icons-material/PendingActions';
+import TrendingUpIcon from '@mui/icons-material/TrendingUp';
 
 export default function ResultadosPage() {
   const { user } = useAuthStore();
@@ -145,28 +149,36 @@ export default function ResultadosPage() {
             <div className="text-[27px] font-extrabold text-[#172b4d]">{data?.resumen?.mesasTotales || 0}</div>
             <div className="text-[#52637d] text-[12px] mt-[3px] font-medium uppercase tracking-wide">Mesas totales</div>
           </div>
-          <div className="w-[42px] h-[42px] rounded-xl bg-[#f4f5f7] grid place-items-center text-[#52637d] text-[19px]">▣</div>
+          <div className="w-[42px] h-[42px] rounded-xl bg-[#f4f5f7] grid place-items-center text-[#52637d]">
+            <ViewModuleIcon />
+          </div>
         </div>
         <div className="bg-white border border-[#d0d7de] rounded-xl p-[18px] shadow-sm flex items-center justify-between">
           <div>
             <div className="text-[27px] font-extrabold text-[#172b4d]">{data?.resumen?.mesasRegistradas || 0}</div>
             <div className="text-[#52637d] text-[12px] mt-[3px] font-medium uppercase tracking-wide">Mesas registradas</div>
           </div>
-          <div className="w-[42px] h-[42px] rounded-xl bg-[#e3fcee] grid place-items-center text-[#0b9349] text-[19px]">✓</div>
+          <div className="w-[42px] h-[42px] rounded-xl bg-[#e3fcee] grid place-items-center text-[#0b9349]">
+            <FactCheckIcon />
+          </div>
         </div>
         <div className="bg-white border border-[#d0d7de] rounded-xl p-[18px] shadow-sm flex items-center justify-between">
           <div>
             <div className="text-[27px] font-extrabold text-[#172b4d]">{data?.resumen?.mesasPendientes || 0}</div>
             <div className="text-[#52637d] text-[12px] mt-[3px] font-medium uppercase tracking-wide">Mesas pendientes</div>
           </div>
-          <div className="w-[42px] h-[42px] rounded-xl bg-[#fff4e5] grid place-items-center text-[#d97008] text-[19px]">⌛</div>
+          <div className="w-[42px] h-[42px] rounded-xl bg-[#fff4e5] grid place-items-center text-[#d97008]">
+            <PendingActionsIcon />
+          </div>
         </div>
         <div className="bg-white border border-[#d0d7de] rounded-xl p-[18px] shadow-sm flex items-center justify-between">
           <div>
             <div className="text-[27px] font-extrabold text-[#172b4d]">{data?.resumen?.avanceGeneral?.toFixed(1) || 0}%</div>
             <div className="text-[#52637d] text-[12px] mt-[3px] font-medium uppercase tracking-wide">Avance general</div>
           </div>
-          <div className="w-[42px] h-[42px] rounded-xl bg-[#e9f2ff] grid place-items-center text-blue-600 text-[19px]">↗</div>
+          <div className="w-[42px] h-[42px] rounded-xl bg-[#e9f2ff] grid place-items-center text-blue-600">
+            <TrendingUpIcon />
+          </div>
         </div>
       </div>
       
