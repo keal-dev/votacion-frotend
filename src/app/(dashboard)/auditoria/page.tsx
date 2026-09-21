@@ -26,7 +26,7 @@ export default function AuditoriaPage() {
   const [actas, setActas] = useState<any[]>([]);
   const [meta, setMeta] = useState<any>({ total: 0, page: 1, limit: 25, totalPages: 1 });
   const [conteoEstados, setConteoEstados] = useState<any>({ TODOS: 0, PENDIENTE: 0, PROCESADO: 0, AUDITADO: 0, OBSERVADO: 0, ANULADO: 0 });
-  const [localesUnicos, setLocalesUnicos] = useState<string[]>([]);
+  const [localesUnicos, setLocalesUnicos] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   
   const [page, setPage] = useState(1);
@@ -159,12 +159,18 @@ export default function AuditoriaPage() {
                     >
                       <option value="">Local de Votación (Todos)</option>
                       {localesUnicos.map((local: any) => (
-                        <option key={local} value={local}>{local}</option>
+                        <option key={local.id} value={local.id}>
+                          {local.centro_poblado ? `${local.nombre} - ${local.centro_poblado}` : local.nombre}
+                        </option>
                       ))}
                     </select>
                   </th>
                   <th className="px-4 py-2 font-medium text-slate-500 text-center w-24">Estado</th>
-                  <th className="px-4 py-2 font-medium text-slate-500 text-center w-[240px]">Válidos / Bl / Nu / Imp / Total</th>
+                  <th className="px-2 py-2 font-medium text-slate-500 text-center w-14" title="Votos Válidos">Vál</th>
+                  <th className="px-2 py-2 font-medium text-slate-500 text-center w-14" title="Votos Blancos">Bl</th>
+                  <th className="px-2 py-2 font-medium text-slate-500 text-center w-14" title="Votos Nulos">Nu</th>
+                  <th className="px-2 py-2 font-medium text-slate-500 text-center w-14" title="Votos Impugnados">Imp</th>
+                  <th className="px-2 py-2 font-medium text-slate-500 text-center w-20" title="Total Votos / Electores Hábiles">Total</th>
                   <th className="px-4 py-2 font-medium text-slate-500 w-24">Participación</th>
                   <th className="px-4 py-2 font-medium text-slate-500 text-center w-16">Foto</th>
                   <th className="px-4 py-2 font-medium text-slate-500 text-right w-24">Hora</th>
@@ -224,25 +230,31 @@ export default function AuditoriaPage() {
                           {acta.estado || 'PENDIENTE'}
                         </span>
                       </td>
-                      <td className="px-4 py-1.5 text-center">
-                        <div className="flex justify-center items-center gap-1 text-[11px] font-bold">
-                          <span className={`px-1.5 py-0.5 rounded border ${validos > 0 ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-transparent text-slate-300 border-transparent opacity-50'}`} title="Votos Válidos (Partidos)">
-                            V: {validos}
-                          </span>
-                          <span className={`px-1.5 py-0.5 rounded border ${blancos > 0 ? 'bg-slate-100 text-slate-700 border-slate-300' : 'bg-transparent text-slate-300 border-transparent opacity-50'}`} title="Votos Blancos">
-                            B: {blancos}
-                          </span>
-                          <span className={`px-1.5 py-0.5 rounded border ${nulos > 0 ? 'bg-slate-100 text-slate-700 border-slate-300' : 'bg-transparent text-slate-300 border-transparent opacity-50'}`} title="Votos Nulos">
-                            N: {nulos}
-                          </span>
-                          <span className={`px-1.5 py-0.5 rounded border ${impugnados > 0 ? 'bg-red-50 text-red-600 border-red-200' : 'bg-transparent text-slate-300 border-transparent opacity-50'}`} title="Votos Impugnados">
-                            I: {impugnados}
-                          </span>
-                          <div className="flex items-center ml-1 bg-slate-100 px-1.5 py-0.5 rounded border border-slate-200 text-slate-700" title="Total Emitidos / Total Electores">
-                            <span>{totalVotos}</span>
-                            <span className="text-[10px] text-slate-400 mx-0.5">/</span>
-                            <span className="text-slate-500">{electores > 0 ? electores : '?'}</span>
-                          </div>
+                      <td className="px-2 py-1.5 text-center">
+                        <span className={`inline-flex px-1.5 py-0.5 rounded border text-[11px] font-bold ${validos > 0 ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-transparent text-slate-300 border-transparent opacity-50'}`} title="Votos Válidos (Partidos)">
+                          {validos}
+                        </span>
+                      </td>
+                      <td className="px-2 py-1.5 text-center">
+                        <span className={`inline-flex px-1.5 py-0.5 rounded border text-[11px] font-bold ${blancos > 0 ? 'bg-slate-100 text-slate-700 border-slate-300' : 'bg-transparent text-slate-300 border-transparent opacity-50'}`} title="Votos Blancos">
+                          {blancos}
+                        </span>
+                      </td>
+                      <td className="px-2 py-1.5 text-center">
+                        <span className={`inline-flex px-1.5 py-0.5 rounded border text-[11px] font-bold ${nulos > 0 ? 'bg-slate-100 text-slate-700 border-slate-300' : 'bg-transparent text-slate-300 border-transparent opacity-50'}`} title="Votos Nulos">
+                          {nulos}
+                        </span>
+                      </td>
+                      <td className="px-2 py-1.5 text-center">
+                        <span className={`inline-flex px-1.5 py-0.5 rounded border text-[11px] font-bold ${impugnados > 0 ? 'bg-red-50 text-red-600 border-red-200' : 'bg-transparent text-slate-300 border-transparent opacity-50'}`} title="Votos Impugnados">
+                          {impugnados}
+                        </span>
+                      </td>
+                      <td className="px-2 py-1.5 text-center">
+                        <div className="inline-flex items-center justify-center bg-slate-100 px-1.5 py-0.5 rounded border border-slate-200 text-[11px] font-bold text-slate-700" title="Total Emitidos / Total Electores">
+                          <span>{totalVotos}</span>
+                          <span className="text-[10px] text-slate-400 mx-0.5">/</span>
+                          <span className="text-slate-500">{electores > 0 ? electores : '?'}</span>
                         </div>
                       </td>
                       <td className="px-4 py-1.5 w-24">

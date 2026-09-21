@@ -15,6 +15,8 @@ export default function AsignacionesPage() {
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
+  const [distritoFiltro, setDistritoFiltro] = useState<string>('TODOS');
+  const [centroPobladoFiltro, setCentroPobladoFiltro] = useState<string>('TODOS');
 
   const loadData = async () => {
     try {
@@ -72,6 +74,20 @@ export default function AsignacionesPage() {
     `${p.name} ${p.lastname}`.toLowerCase().includes(searchTerm.toLowerCase()) || 
     p.dni.includes(searchTerm)
   );
+
+  const distritos = Array.from(new Set(mesas.map(m => m.local?.distrito).filter(Boolean))) as string[];
+  const centrosPoblados = Array.from(new Set(
+    mesas
+      .filter(m => distritoFiltro === 'TODOS' || m.local?.distrito === distritoFiltro)
+      .map(m => m.local?.centro_poblado)
+      .filter(Boolean)
+  )) as string[];
+
+  const mesasFiltradasGeograficamente = mesas.filter(m => {
+    if (distritoFiltro !== 'TODOS' && m.local?.distrito !== distritoFiltro) return false;
+    if (centroPobladoFiltro !== 'TODOS' && m.local?.centro_poblado !== centroPobladoFiltro) return false;
+    return true;
+  });
 
   return (
     <div className="max-w-7xl mx-auto flex h-full flex-col animate-in fade-in slide-in-from-left-8 duration-300 w-full">
@@ -179,12 +195,33 @@ export default function AsignacionesPage() {
 
               {selectedUser ? (
                 <div className="flex-1 flex flex-col overflow-hidden">
-                  <div className="p-5 border-b border-line bg-slate-50/50">
-                    <p className="text-[13px] text-[#52637d]">
-                      <strong>Personero seleccionado:</strong><br />
-                      <span className="text-[15px] font-bold text-[#172b4d]">{selectedUser.name} {selectedUser.lastname}</span> 
-                      <span className="ml-2 text-[#667085]">(DNI: {selectedUser.dni})</span>
-                    </p>
+                      <div className="px-5 py-3 border-b border-line bg-slate-50/50 flex flex-wrap items-center gap-4">
+                        <div className="flex items-center gap-2">
+                          <strong className="text-[13px] text-[#52637d]">Personero:</strong>
+                          <span className="text-[14px] font-bold text-[#172b4d]">{selectedUser.name} {selectedUser.lastname}</span>
+                        </div>
+                        <div className="flex-1"></div>
+                        <div className="flex items-center gap-3">
+                          <select
+                            value={distritoFiltro}
+                            onChange={(e) => {
+                              setDistritoFiltro(e.target.value);
+                              setCentroPobladoFiltro('TODOS'); // Reset centro poblado
+                            }}
+                            className="text-[12px] bg-white border border-[#dfe1e6] rounded px-2 py-1 outline-none focus:border-blue-500 text-[#172b4d]"
+                          >
+                            <option value="TODOS">Todos los Distritos</option>
+                            {distritos.map(d => <option key={d} value={d}>{d}</option>)}
+                          </select>
+                          <select
+                            value={centroPobladoFiltro}
+                            onChange={(e) => setCentroPobladoFiltro(e.target.value)}
+                            className="text-[12px] bg-white border border-[#dfe1e6] rounded px-2 py-1 outline-none focus:border-blue-500 text-[#172b4d]"
+                          >
+                            <option value="TODOS">Todos los C. Poblados</option>
+                            {centrosPoblados.map(cp => <option key={cp} value={cp}>{cp}</option>)}
+                          </select>
+                        </div>
                   </div>
 
                   <div className="flex-1 overflow-auto">
@@ -193,22 +230,26 @@ export default function AsignacionesPage() {
                         <tr>
                           <th className="px-5 py-3.5">Mesa</th>
                           <th className="px-5 py-3.5">Local de votación</th>
+                              <th className="px-5 py-3.5">Centro Poblado</th>
                           <th className="px-5 py-3.5">Distrito</th>
                           <th className="px-5 py-3.5 text-center">Asignar</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-line bg-white">
-                        {mesas.map(mesa => {
+                            {mesasFiltradasGeograficamente.map(mesa => {
                           const isAssignedToMe = mesa.personero?.id === selectedUser.id;
                           const isAssignedToOther = mesa.personero !== null && mesa.personero?.id !== selectedUser.id;
                           
                           return (
-                            <tr key={mesa.id} className="hover:bg-[#f8fafc] transition-colors">
+                            <tr key={mesa.id} className={`transition-colors ${isAssignedToMe ? 'bg-blue-50/40 hover:bg-blue-50/60' : 'hover:bg-[#f8fafc]'}`}>
                               <td className="px-5 py-3 font-bold text-[#172b4d] text-[13px]">
                                 {mesa.numero_mesa}
                               </td>
                               <td className="px-5 py-3 text-[13px]">
                                 {mesa.local?.nombre || 'Sin local'}
+                              </td>
+                              <td className="px-5 py-3 text-[13px]">
+                                {mesa.local?.centro_poblado || '-'}
                               </td>
                               <td className="px-5 py-3 text-[13px]">
                                 {mesa.local?.distrito || '-'}
@@ -230,10 +271,10 @@ export default function AsignacionesPage() {
                             </tr>
                           );
                         })}
-                        {mesas.length === 0 && (
+                            {mesasFiltradasGeograficamente.length === 0 && (
                           <tr>
-                            <td colSpan={4} className="px-5 py-10 text-center text-[#52637d]">
-                              No hay mesas registradas para esta elección.
+                                <td colSpan={5} className="px-5 py-10 text-center text-[#52637d]">
+                                  No hay mesas que coincidan con estos filtros.
                             </td>
                           </tr>
                         )}

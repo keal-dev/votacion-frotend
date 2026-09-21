@@ -14,6 +14,7 @@ export type User = {
     updatedAt: string | Date;
     deletedAt: string | Date | null;
     election?: Election | null;
+    isDefaultPassword?: boolean;
 };
 
 export enum Role {

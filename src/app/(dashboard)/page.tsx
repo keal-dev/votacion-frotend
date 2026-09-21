@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { useAuthStore } from "@/store/auth.store";
 import axiosInstance from "@/utils/axios";
 import Link from "next/link";
@@ -15,12 +15,53 @@ import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContai
 import WarningAmberIcon from '@mui/icons-material/WarningAmber';
 import ErrorIcon from '@mui/icons-material/Error';
 import TimelineIcon from '@mui/icons-material/Timeline';
+import KeyOutlinedIcon from '@mui/icons-material/KeyOutlined';
+import CloseIcon from '@mui/icons-material/Close';
+import ChangePasswordModal from "@/components/modals/ChangePasswordModal";
 
 export default function DashboardInicio() {
-  const { user } = useAuthStore();
+  const { user, setUser } = useAuthStore();
   const [mounted, setMounted] = useState(false);
+  const [isPasswordModalOpen, setIsPasswordModalOpen] = useState(false);
+  const [hidePasswordWarning, setHidePasswordWarning] = useState(false);
   const [metrics, setMetrics] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+
+  const [selectedProgresoDistrito, setSelectedProgresoDistrito] = useState("");
+  const [selectedProgresoCentroMesa, setSelectedProgresoCentroMesa] = useState("");
+
+  const distritosProgreso = useMemo(() => {
+    if (!metrics?.progresoPersoneros) return [];
+    return Array.from(new Set(metrics.progresoPersoneros.map((p: any) => p.local_distrito))).filter(Boolean).sort();
+  }, [metrics]);
+
+  const centrosPobladosMesasProgreso = useMemo(() => {
+    if (!metrics?.progresoPersoneros) return [];
+    let list = metrics.progresoPersoneros;
+    if (selectedProgresoDistrito) {
+      list = list.filter((p: any) => p.local_distrito === selectedProgresoDistrito);
+    }
+    const combined = list.map((p: any) => {
+      const cp = p.local_centro_poblado || "Sin CP";
+      const mesas = p.mesas_numeros ? `Mesa(s): ${p.mesas_numeros}` : "";
+      return `${cp} - ${mesas}`;
+    });
+    return Array.from(new Set<string>(combined)).filter((s) => s !== "Sin CP - ").sort();
+  }, [metrics, selectedProgresoDistrito]);
+
+  const filteredProgreso = useMemo(() => {
+    if (!metrics?.progresoPersoneros) return [];
+    return metrics.progresoPersoneros.filter((p: any) => {
+      if (selectedProgresoDistrito && p.local_distrito !== selectedProgresoDistrito) return false;
+      if (selectedProgresoCentroMesa) {
+        const cp = p.local_centro_poblado || "Sin CP";
+        const mesas = p.mesas_numeros ? `Mesa(s): ${p.mesas_numeros}` : "";
+        const combined = `${cp} - ${mesas}`;
+        if (combined !== selectedProgresoCentroMesa) return false;
+      }
+      return true;
+    });
+  }, [metrics, selectedProgresoDistrito, selectedProgresoCentroMesa]);
 
   useEffect(() => {
     setMounted(true);
@@ -82,6 +123,35 @@ export default function DashboardInicio() {
 
     return (
       <div className="max-w-4xl mx-auto animate-in fade-in slide-in-from-left-8 duration-300">
+        {user.isDefaultPassword && !hidePasswordWarning && (
+          <div className="bg-orange-50 border border-orange-200 rounded-lg p-4 mx-auto mb-6 flex flex-col sm:flex-row items-center justify-between text-left shadow-sm relative group pr-10">
+            <button 
+              onClick={() => setHidePasswordWarning(true)}
+              className="absolute top-1/2 -translate-y-1/2 right-2 text-orange-400 hover:text-orange-700 p-1 opacity-60 hover:opacity-100 transition-all"
+              title="Cerrar advertencia"
+            >
+              <CloseIcon sx={{ fontSize: 18 }} />
+            </button>
+            <div className="flex items-center gap-3 mb-3 sm:mb-0">
+              <div className="w-10 h-10 rounded-full bg-orange-100 flex items-center justify-center shrink-0">
+                <KeyOutlinedIcon className="text-orange-600" />
+              </div>
+              <div>
+                <h3 className="text-orange-800 font-bold text-sm m-0 leading-tight">Alerta de Seguridad</h3>
+                <p className="text-orange-700 text-xs m-0 mt-0.5">
+                  Tu contraseña sigue siendo tu DNI. Cámbiala ahora para proteger tu cuenta.
+                </p>
+              </div>
+            </div>
+            <button 
+              onClick={() => setIsPasswordModalOpen(true)}
+              className="bg-orange-600 hover:bg-orange-700 text-white text-xs font-bold py-2 px-4 rounded whitespace-nowrap sm:ml-4 transition-colors w-full sm:w-auto"
+            >
+              Cambiar Contraseña
+            </button>
+          </div>
+        )}
+
         <div className="bg-white border border-[#d0d7de] rounded-2xl shadow-sm p-8 text-center mb-8">
           <div className="w-16 h-16 bg-[#e3fcee] text-[#0b9349] rounded-full flex items-center justify-center mx-auto mb-4">
             <CheckCircleIcon sx={{ fontSize: 32 }} />
@@ -89,163 +159,114 @@ export default function DashboardInicio() {
           <h1 className="text-[24px] md:text-[28px] font-extrabold text-[#172b4d] tracking-tight mb-2">
             ¡Hola, {user.name}!
           </h1>
-          <p className="text-[#52637d] text-sm max-w-md mx-auto">
+          <p className="text-[#52637d] text-sm max-w-md mx-auto mb-4">
             Bienvenido al Centro de Operaciones. Revisa el estado de tu jornada o ve a la sección de mesas para empezar a trabajar.
           </p>
-          <Link href="/personero" className="inline-block mt-4 px-6 py-2 bg-blue-600 text-white font-bold rounded-lg hover:bg-blue-700 transition-colors">
+
+          <Link href="/personero" className="inline-block px-6 py-2 bg-blue-600 text-white font-bold rounded-lg hover:bg-blue-700 transition-colors">
             Ir a Mis Mesas
           </Link>
         </div>
 
-        {/* Resumen de Mesas */}
-        <div className="mb-8 w-full">
-          <h2 className="text-lg font-bold text-[#172b4d] mb-6 text-center">Tus Mesas Asignadas</h2>
-          <div className="grid grid-cols-2 gap-4 sm:gap-6">
-            <div className="bg-white border border-[#d0d7de] rounded-xl p-5 shadow-sm flex items-center gap-4">
-              <div className="w-12 h-12 bg-[#dcfce7] rounded-lg flex items-center justify-center text-[#15803d]">
-                <MapIcon />
-              </div>
-              <div className="text-left">
-                <div className="text-2xl font-extrabold text-[#172b4d]">{mesas.length}</div>
-                <div className="text-[13px] text-[#52637d] font-bold">Mesas</div>
-              </div>
-            </div>
-            <div className="bg-white border border-[#d0d7de] rounded-xl p-5 shadow-sm flex items-center gap-4">
-              <div className="w-12 h-12 bg-[#dbeafe] rounded-lg flex items-center justify-center text-[#2563eb]">
-                <InsertDriveFileIcon />
-              </div>
-              <div className="text-left">
-                <div className="text-2xl font-extrabold text-[#172b4d]">
-                  {mesas.filter((m: any) => (m.actas ?? []).length > 0).length}
-                </div>
-                <div className="text-[13px] text-[#52637d] font-bold">Actas Listas</div>
-              </div>
-            </div>
-          </div>
-        </div>
+
+
+
 
         {/* Timeline Visual Informativo */}
         <div className="bg-white border border-[#d0d7de] rounded-2xl p-8 mb-8 shadow-sm">
-          <h2 className="text-lg font-bold text-[#172b4d] mb-8 text-center">Progreso de la Jornada</h2>
-          <div className="flex items-center justify-between relative max-w-2xl mx-auto">
-            {/* Línea conectora base */}
-            <div className="absolute left-[15%] right-[15%] top-[24px] h-1 bg-slate-100 z-0 rounded-full"></div>
-
-            {/* Línea conectora activa (progreso) */}
-            <div
-              className="absolute left-[15%] top-[24px] h-1 bg-blue-500 z-0 rounded-full transition-all duration-500"
-              style={{
-                width: isCheckedOut ? '70%' :
-                  (isCheckedIn && mesas.every((m: any) => (m.actas ?? []).length > 0) && mesas.length > 0) ? '35%' :
-                    isCheckedIn ? '5%' : '0%'
-              }}
-            ></div>
-
-            {/* Paso 1: Asistencia */}
-            <div className="relative z-10 flex flex-col items-center gap-2 w-1/3 text-center">
-              <div className={`w-12 h-12 rounded-full flex items-center justify-center font-bold text-lg border-4 transition-colors ${isCheckedIn ? 'bg-blue-500 text-white border-blue-100 shadow-sm' : 'bg-slate-50 text-slate-400 border-slate-100'}`}>
-                {isCheckedIn ? '✓' : '1'}
+          <h2 className="text-lg font-bold text-[#172b4d] mb-8 text-center">Fases del Personero</h2>
+          <div className="max-w-md mx-auto pl-4">
+            
+            {/* Fase 1: Asistencia Llegada */}
+            <div className="flex">
+              <div className="flex flex-col items-center mr-5">
+                {isCheckedIn ? (
+                  <div className="w-6 h-6 rounded-full bg-[#15803d] flex items-center justify-center text-white z-10">
+                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M5 13l4 4L19 7"></path></svg>
+                  </div>
+                ) : (
+                  <div className="w-6 h-6 rounded-full border-2 border-[#15803d] bg-[#dcfce7] flex items-center justify-center z-10">
+                    <div className="w-2.5 h-2.5 rounded-full bg-[#15803d]"></div>
+                  </div>
+                )}
+                <div className={`w-0.5 flex-1 -mt-2 -mb-2 z-0 ${isCheckedIn ? 'bg-[#15803d]' : 'bg-[#e2e8f0]'}`}></div>
               </div>
-              <div>
-                <div className={`text-[14px] font-bold ${isCheckedIn ? 'text-[#172b4d]' : 'text-slate-500'}`}>Asistencia</div>
-                <div className="text-[12px] font-medium text-slate-500 mt-0.5">{isCheckedIn ? currentTime : 'Pendiente'}</div>
-              </div>
-            </div>
-
-            {/* Paso 2: Actas */}
-            <div className="relative z-10 flex flex-col items-center gap-2 w-1/3 text-center">
-              <div className={`w-12 h-12 rounded-full flex items-center justify-center font-bold text-lg border-4 transition-colors ${(isCheckedIn && mesas.length > 0 && mesas.every((m: any) => (m.actas ?? []).length > 0)) ? 'bg-blue-500 text-white border-blue-100 shadow-sm' :
-                isCheckedIn ? 'bg-blue-50 text-blue-600 border-blue-100' :
-                  'bg-slate-50 text-slate-400 border-slate-100'
-                }`}>
-                {(isCheckedIn && mesas.length > 0 && mesas.every((m: any) => (m.actas ?? []).length > 0)) ? '✓' : '2'}
-              </div>
-              <div>
-                <div className={`text-[14px] font-bold ${(isCheckedIn && mesas.length > 0 && mesas.every((m: any) => (m.actas ?? []).length > 0)) ? 'text-[#172b4d]' : isCheckedIn ? 'text-blue-700' : 'text-slate-500'}`}>Registro de Actas</div>
-                <div className="text-[12px] font-medium text-slate-500 mt-0.5">
-                  {isCheckedIn ? `${mesas.filter((m: any) => (m.actas ?? []).length > 0).length} de ${mesas.length} completadas` : 'Bloqueado'}
-                </div>
+              <div className="pb-8 pt-0.5 flex-1 text-left">
+                <h3 className={`text-[15px] ${isCheckedIn ? 'font-semibold text-[#334155]' : 'font-bold text-[#0f172a]'}`}>Asistencia Llegada</h3>
+                <p className="text-[13px] text-[#64748b] mt-1">Registro inicial {isCheckedIn ? `(${currentTime})` : ''}</p>
+                {!isCheckedIn && (
+                  <span className="inline-block mt-2 px-2.5 py-1 bg-[#fef08a] text-[#854d0e] text-[11px] font-bold rounded-md">
+                    En progreso
+                  </span>
+                )}
               </div>
             </div>
 
-            {/* Paso 3: Salida */}
-            <div className="relative z-10 flex flex-col items-center gap-2 w-1/3 text-center">
-              <div className={`w-12 h-12 rounded-full flex items-center justify-center font-bold text-lg border-4 transition-colors ${isCheckedOut ? 'bg-blue-500 text-white border-blue-100 shadow-sm' : 'bg-slate-50 text-slate-400 border-slate-100'}`}>
-                {isCheckedOut ? '✓' : '3'}
+            {/* Fase 2: Envío de Actas */}
+            <div className="flex">
+              <div className="flex flex-col items-center mr-5">
+                {(isCheckedIn && mesas.length > 0 && mesas.every((m: any) => (m.actas ?? []).length > 0)) ? (
+                  <div className="w-6 h-6 rounded-full bg-[#15803d] flex items-center justify-center text-white z-10">
+                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M5 13l4 4L19 7"></path></svg>
+                  </div>
+                ) : isCheckedIn ? (
+                  <div className="w-6 h-6 rounded-full border-2 border-[#15803d] bg-[#dcfce7] flex items-center justify-center z-10">
+                    <div className="w-2.5 h-2.5 rounded-full bg-[#15803d]"></div>
+                  </div>
+                ) : (
+                  <div className="w-6 h-6 rounded-full border-2 border-[#cbd5e1] bg-[#e2e8f0] z-10"></div>
+                )}
+                <div className={`w-0.5 flex-1 -mt-2 -mb-2 z-0 ${(isCheckedIn && mesas.length > 0 && mesas.every((m: any) => (m.actas ?? []).length > 0)) ? 'bg-[#15803d]' : 'bg-[#e2e8f0]'}`}></div>
               </div>
-              <div>
-                <div className={`text-[14px] font-bold ${isCheckedOut ? 'text-[#172b4d]' : 'text-slate-500'}`}>Salida</div>
-                <div className="text-[12px] font-medium text-slate-500 mt-0.5">{isCheckedOut ? checkoutTime : 'Pendiente'}</div>
+              <div className="pb-8 pt-0.5 flex-1 text-left">
+                <h3 className={`text-[15px] ${(isCheckedIn && mesas.length > 0 && mesas.every((m: any) => (m.actas ?? []).length > 0)) ? 'font-semibold text-[#334155]' : isCheckedIn ? 'font-bold text-[#0f172a]' : 'font-semibold text-[#94a3b8]'}`}>Envío de Actas</h3>
+                <p className="text-[13px] text-[#64748b] mt-1">Durante escrutinio</p>
+                {isCheckedIn && (mesas.length === 0 || !mesas.every((m: any) => (m.actas ?? []).length > 0)) && (
+                  <span className="inline-block mt-2 px-2.5 py-1 bg-[#fef08a] text-[#854d0e] text-[11px] font-bold rounded-md">
+                    En progreso
+                  </span>
+                )}
               </div>
             </div>
+
+            {/* Fase 3: Salida Asistencia */}
+            <div className="flex">
+              <div className="flex flex-col items-center mr-5">
+                {isCheckedOut ? (
+                  <div className="w-6 h-6 rounded-full bg-[#15803d] flex items-center justify-center text-white z-10">
+                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M5 13l4 4L19 7"></path></svg>
+                  </div>
+                ) : (isCheckedIn && mesas.length > 0 && mesas.every((m: any) => (m.actas ?? []).length > 0)) ? (
+                  <div className="w-6 h-6 rounded-full border-2 border-[#15803d] bg-[#dcfce7] flex items-center justify-center z-10">
+                    <div className="w-2.5 h-2.5 rounded-full bg-[#15803d]"></div>
+                  </div>
+                ) : (
+                  <div className="w-6 h-6 rounded-full border-2 border-[#cbd5e1] bg-[#e2e8f0] z-10"></div>
+                )}
+              </div>
+              <div className="pb-2 pt-0.5 flex-1 text-left">
+                <h3 className={`text-[15px] ${isCheckedOut ? 'font-semibold text-[#334155]' : (isCheckedIn && mesas.length > 0 && mesas.every((m: any) => (m.actas ?? []).length > 0)) ? 'font-bold text-[#0f172a]' : 'font-semibold text-[#94a3b8]'}`}>Salida Asistencia</h3>
+                <p className="text-[13px] text-[#64748b] mt-1">Fin de jornada {isCheckedOut ? `(${checkoutTime})` : ''}</p>
+                {!isCheckedOut && (isCheckedIn && mesas.length > 0 && mesas.every((m: any) => (m.actas ?? []).length > 0)) && (
+                  <span className="inline-block mt-2 px-2.5 py-1 bg-[#fef08a] text-[#854d0e] text-[11px] font-bold rounded-md">
+                    Pendiente
+                  </span>
+                )}
+              </div>
+            </div>
+            
           </div>
         </div>
 
-        {/* Resumen Rápido de Votos Registrados */}
-        {mesas.filter((m: any) => m.actas && m.actas.length > 0).length > 0 && (
-          <div className="bg-white border border-[#d0d7de] rounded-2xl p-6 mb-8 shadow-sm text-left">
-            <h2 className="text-lg font-bold text-[#172b4d] mb-6 flex items-center gap-2">
-              <AssignmentTurnedInIcon className="text-blue-600" /> Mis Registros Enviados
-            </h2>
-
-            <div className="space-y-6">
-              {mesas.filter((m: any) => m.actas && m.actas.length > 0).map((mesa: any) => (
-                <div key={mesa.id} className="border border-slate-200 rounded-xl overflow-hidden">
-                  <div className="bg-slate-50 px-4 py-3 border-b border-slate-200 flex justify-between items-center flex-wrap gap-3">
-                    <div>
-                      <h3 className="font-bold text-slate-800">Mesa {mesa.numero_mesa}</h3>
-                      <p className="text-xs text-slate-500">
-                        Total votantes: {mesa.actas[0].ciudadanos_votaron} de {mesa.cantidad_electores} hábiles
-                      </p>
-                    </div>
-                    {mesa.actas[0].fotos && mesa.actas[0].fotos.length > 0 && (
-                      <div className="flex gap-2">
-                        {mesa.actas[0].fotos.map((f: any, i: number) => (
-                          <a key={i} href={f.url} target="_blank" rel="noreferrer" className="w-10 h-10 rounded border border-slate-200 overflow-hidden hover:opacity-80 transition-opacity bg-white flex-shrink-0" title="Ver foto">
-                            <img src={f.url} alt="Foto acta" className="w-full h-full object-cover" />
-                          </a>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-
-                  {mesa.actas[0].votos && mesa.actas[0].votos.length > 0 ? (
-                    <div className="p-4 grid grid-cols-1 md:grid-cols-3 gap-6">
-                      {['REGIONAL', 'PROVINCIAL', 'DISTRITAL'].map((cargo) => (
-                        <div key={cargo}>
-                          <h4 className="text-[13px] font-bold text-slate-700 mb-3 border-b pb-1">
-                            {cargo === 'REGIONAL' ? 'Regional' : cargo === 'PROVINCIAL' ? 'Provincial' : 'Distrital'}
-                          </h4>
-                          <div className="space-y-2">
-                            {mesa.actas[0].votos
-                              .filter((v: any) => v.nivel === cargo)
-                              .sort((a: any, b: any) => {
-                                if (a.tipo !== 'CANDIDATO') return 1;
-                                if (b.tipo !== 'CANDIDATO') return -1;
-                                return b.cantidad - a.cantidad;
-                              })
-                              .map((voto: any) => (
-                                <div key={voto.id} className="flex justify-between items-center text-[13px]">
-                                  <span className="truncate pr-2 max-w-[150px] text-slate-600" title={voto.tipo === 'CANDIDATO' ? (voto.candidato?.partido?.nombre || 'Independiente') : voto.tipo}>
-                                    {voto.tipo === 'CANDIDATO' ? (voto.candidato?.partido?.nombre || 'Independiente') : voto.tipo}
-                                  </span>
-                                  <span className="font-semibold bg-slate-100 px-2 py-0.5 rounded text-slate-700">{voto.cantidad}</span>
-                                </div>
-                              ))}
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <div className="p-4 text-sm text-slate-500 text-center">
-                      No hay detalles de votos disponibles.
-                    </div>
-                  )}
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
+        <ChangePasswordModal 
+          isOpen={isPasswordModalOpen} 
+          onClose={() => setIsPasswordModalOpen(false)} 
+          onSuccess={() => {
+            if (user) {
+              setUser({ ...user, isDefaultPassword: false });
+            }
+          }}
+        />
       </div>
     );
   }
@@ -297,7 +318,7 @@ export default function DashboardInicio() {
 
             <div className="bg-white border border-[#d0d7de] rounded-xl p-5 shadow-sm hover:shadow-md transition-all">
               <div className="flex items-center justify-between mb-2">
-                <span className="text-[#52637d] font-semibold text-xs uppercase tracking-wider">Asistencias Hoy</span>
+                <span className="text-[#52637d] font-semibold text-xs uppercase tracking-wider">Asistencias</span>
                 <LocationOnIcon className="text-orange-500" fontSize="small" />
               </div>
               <div className="text-2xl font-extrabold text-[#172b4d]">
@@ -458,11 +479,37 @@ export default function DashboardInicio() {
           <div className="w-full">
               {/* Progreso del Personal (Tabla Unificada) */}
               <div className="bg-white border border-[#d0d7de] rounded-xl shadow-sm overflow-hidden flex flex-col">
-                <div className="bg-[#f6f8fa] border-b border-[#d0d7de] px-5 py-3">
+                <div className="bg-[#f6f8fa] border-b border-[#d0d7de] px-5 py-3 flex items-center justify-between flex-wrap gap-4">
                   <h3 className="text-[15px] font-extrabold text-[#172b4d] flex items-center gap-2">
                     <GroupIcon className="text-purple-600" />
                     Progreso del Personal
                   </h3>
+                  <div className="flex items-center gap-3">
+                    <select
+                      className="border border-[#d0d7de] rounded-md px-3 py-1.5 text-sm bg-white text-[#172b4d] focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      value={selectedProgresoDistrito}
+                      onChange={(e) => {
+                        setSelectedProgresoDistrito(e.target.value);
+                        setSelectedProgresoCentroMesa("");
+                      }}
+                    >
+                      <option value="">Todos los Distritos</option>
+                      {distritosProgreso.map((d: any) => (
+                        <option key={d} value={d}>{d}</option>
+                      ))}
+                    </select>
+
+                    <select
+                      className="border border-[#d0d7de] rounded-md px-3 py-1.5 text-sm bg-white text-[#172b4d] focus:outline-none focus:ring-2 focus:ring-blue-500 max-w-[300px]"
+                      value={selectedProgresoCentroMesa}
+                      onChange={(e) => setSelectedProgresoCentroMesa(e.target.value)}
+                    >
+                      <option value="">Todos los Centros / Mesas</option>
+                      {centrosPobladosMesasProgreso.map((c: any) => (
+                        <option key={c} value={c}>{c}</option>
+                      ))}
+                    </select>
+                  </div>
                 </div>
                 <div className="overflow-x-auto">
                   <table className="w-full border-collapse">
@@ -476,8 +523,8 @@ export default function DashboardInicio() {
                       </tr>
                     </thead>
                     <tbody>
-                      {metrics.progresoPersoneros && metrics.progresoPersoneros.length > 0 ? (
-                        metrics.progresoPersoneros.map((p: any, idx: number) => {
+                      {filteredProgreso && filteredProgreso.length > 0 ? (
+                        filteredProgreso.map((p: any, idx: number) => {
                           const total = parseInt(p.total_mesas) || 0;
                           const registradas = parseInt(p.mesas_registradas) || 0;
                           const pct = total > 0 ? (registradas / total) * 100 : 0;

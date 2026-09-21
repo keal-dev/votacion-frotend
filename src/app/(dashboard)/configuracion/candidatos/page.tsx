@@ -12,6 +12,7 @@ import CreateCandidatoModal from "./components/CreateCandidatoModal";
 import EditCandidatoModal from "./components/EditCandidatoModal";
 import DeleteConfirmModal from "@/components/DeleteConfirmModal";
 import PersonIcon from '@mui/icons-material/Person';
+import InboxOutlinedIcon from '@mui/icons-material/InboxOutlined';
 
 const BASE_URL = process.env.NEXT_PUBLIC_API_URL?.replace('/api', '') || 'http://localhost:3001';
 
@@ -21,6 +22,7 @@ export default function CandidatosPage() {
     const [loading, setLoading] = useState(true);
     const [filterCargo, setFilterCargo] = useState<string>('ALL');
     const [filterPartido, setFilterPartido] = useState<string | 'ALL'>('ALL');
+    const [filterDistrito, setFilterDistrito] = useState<string>('ALL');
 
     // Modales
     const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
@@ -82,16 +84,21 @@ export default function CandidatosPage() {
         new Map(candidatos.filter(c => c.partido).map((c) => [c.partido?.id, c.partido])).values()
     );
 
+    const distritosUnicos = Array.from(
+        new Set(candidatos.filter(c => c.distrito).map(c => c.distrito as string))
+    ).sort();
+
     const filteredCandidatos = candidatos.filter(c => {
         const matchCargo = filterCargo === 'ALL' || c.cargo === filterCargo;
         const matchPartido = filterPartido === 'ALL' || c.partido?.id === filterPartido;
-        return matchCargo && matchPartido;
+        const matchDistrito = filterDistrito === 'ALL' || c.distrito === filterDistrito;
+        return matchCargo && matchPartido && matchDistrito;
     });
 
     return (
         <div className="flex h-full flex-col">
             {/* Header */}
-            <div className="flex items-center justify-between mb-5">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-5 gap-4">
                 <div>
                     <h1 className="text-[24px] md:text-[28px] font-extrabold text-[#172b4d] tracking-tight">Candidatos</h1>
                     <div className="mt-1 flex items-center text-[13px] text-[#52637d]">
@@ -101,15 +108,24 @@ export default function CandidatosPage() {
                     </div>
                 </div>
 
-                {activeElection && (
-                    <button
-                        onClick={() => setIsCreateModalOpen(true)}
-                        className="flex items-center justify-center gap-2 rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-bold text-white shadow-sm transition hover:bg-blue-700 active:scale-95"
-                    >
-                        <AddIcon fontSize="small" />
-                        Inscribir Candidato
-                    </button>
-                )}
+                <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 w-full sm:w-auto">
+                    {activeElection && (
+                        <div className="flex items-center gap-2 rounded-full bg-green-50 px-4 py-2 border border-green-200 shadow-sm w-full sm:w-auto justify-center">
+                            <div className="w-2 h-2 rounded-full bg-[#0b9349] animate-pulse"></div>
+                            <span className="text-[13px] font-bold text-[#0b9349]">{activeElection.nombre}</span>
+                        </div>
+                    )}
+
+                    {activeElection && (
+                        <button
+                            onClick={() => setIsCreateModalOpen(true)}
+                            className="flex cursor-pointer w-full sm:w-auto h-fit items-center justify-center gap-2 rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-bold text-white shadow-sm transition hover:bg-blue-700 active:scale-95"
+                        >
+                            <AddIcon fontSize="small" />
+                            Inscribir Candidato
+                        </button>
+                    )}
+                </div>
             </div>
 
             {/* Modales */}
@@ -131,6 +147,7 @@ export default function CandidatosPage() {
                 isOpen={isEditModalOpen}
                 candidato={candidatoToEdit}
                 activeElection={activeElection}
+                candidatos={candidatos}
                 onClose={() => setIsEditModalOpen(false)}
                 onSuccess={(warning) => {
                     setIsEditModalOpen(false);
@@ -157,13 +174,10 @@ export default function CandidatosPage() {
                         <div className="h-8 w-8 animate-spin rounded-full border-4 border-blue-600 border-t-transparent"></div>
                     </div>
                 ) : !activeElection ? (
-                    <div className="flex h-full flex-col items-center justify-center rounded-xl border border-line bg-white p-8 text-center shadow-sm">
-                        <div className="mb-4 rounded-full bg-yellow-50 p-4 text-yellow-500">
-                            <span className="text-4xl">⚠️</span>
-                        </div>
-                        <h2 className="mb-2 text-lg font-bold text-[#172b4d]">No hay elección activa</h2>
-                        <p className="max-w-md text-sm text-[#52637d]">
-                            Para inscribir candidatos, primero debes activar una elección desde el panel de Configuración.
+                        <div className="rounded-xl border border-amber-200 bg-amber-50 p-6 text-center mt-4">
+                            <h3 className="text-base font-bold text-amber-800 mb-2">No hay ninguna Elección Activa</h3>
+                            <p className="text-sm text-amber-700">
+                                Debes tener una elección marcada como ACTIVA para inscribir candidatos. Ve a la sección de Elecciones y activa una.
                         </p>
                     </div>
                 ) : (
@@ -175,7 +189,7 @@ export default function CandidatosPage() {
                                 <select
                                     value={filterCargo}
                                     onChange={(e) => setFilterCargo(e.target.value)}
-                                    className="rounded-lg border border-line bg-slate-50 px-3 py-2 text-[13px] font-medium text-[#172b4d] shadow-sm outline-none transition-all hover:bg-white focus:bg-white hover:border-blue-300 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 min-w-[200px]"
+                                    className="rounded-lg border border-line bg-slate-50 px-2 py-1.5 text-[12px] font-medium text-[#172b4d] shadow-sm outline-none transition-all hover:bg-white focus:bg-white hover:border-blue-300 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 min-w-[160px]"
                                 >
                                     <option value="ALL">Todos los cargos</option>
                                     <option value={CargoCandidato.REGIONAL}>Gubernatura Regional</option>
@@ -190,7 +204,7 @@ export default function CandidatosPage() {
                                     <select
                                         value={filterPartido}
                                         onChange={(e) => setFilterPartido(e.target.value)}
-                                        className="rounded-lg border border-line bg-slate-50 px-3 py-2 text-[13px] font-medium text-[#172b4d] shadow-sm outline-none transition-all hover:bg-white focus:bg-white hover:border-blue-300 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 min-w-[200px]"
+                                        className="rounded-lg border border-line bg-slate-50 px-2 py-1.5 text-[12px] font-medium text-[#172b4d] shadow-sm outline-none transition-all hover:bg-white focus:bg-white hover:border-blue-300 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 min-w-[160px]"
                                     >
                                         <option value="ALL">Todos los partidos</option>
                                         {partidosUnicos.map(p => (
@@ -199,11 +213,31 @@ export default function CandidatosPage() {
                                     </select>
                                 </div>
                             )}
+
+                                    {distritosUnicos.length > 0 && (
+                                        <div className="flex flex-col sm:flex-row sm:items-center gap-3 md:border-l md:border-line md:pl-6">
+                                            <span className="text-[13px] font-bold text-[#52637d]">Distrito:</span>
+                                            <select
+                                                value={filterDistrito}
+                                                onChange={(e) => setFilterDistrito(e.target.value)}
+                                                className="rounded-lg border border-line bg-slate-50 px-2 py-1.5 text-[12px] font-medium text-[#172b4d] shadow-sm outline-none transition-all hover:bg-white focus:bg-white hover:border-blue-300 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 min-w-[160px]"
+                                            >
+                                                <option value="ALL">Todos los distritos</option>
+                                                {distritosUnicos.map(d => (
+                                                    <option key={d} value={d}>{d}</option>
+                                                ))}
+                                            </select>
+                                        </div>
+                                    )}
                         </div>
 
                         {filteredCandidatos.length === 0 ? (
-                            <div className="flex h-64 flex-col items-center justify-center rounded-xl border border-line bg-white shadow-sm">
-                                <p className="text-sm font-medium text-[#52637d]">No hay candidatos registrados en esta categoría.</p>
+                                    <div className="flex h-[400px] flex-col items-center justify-center rounded-xl border-2 border-dashed border-[#e2e8f0] bg-[#f8fafc]">
+                                        <div className="mb-4 flex h-20 w-20 items-center justify-center rounded-full bg-slate-200/50">
+                                            <InboxOutlinedIcon className="text-slate-400" style={{ fontSize: 40 }} />
+                                        </div>
+                                        <h3 className="text-[15px] font-extrabold text-[#172b4d] mb-1">Sin Candidatos</h3>
+                                        <p className="text-[13px] font-medium text-[#52637d] text-center max-w-xs">No hay candidatos registrados en esta categoría.</p>
                             </div>
                         ) : (
                             <div className="overflow-hidden rounded-xl border border-line bg-white shadow-sm">

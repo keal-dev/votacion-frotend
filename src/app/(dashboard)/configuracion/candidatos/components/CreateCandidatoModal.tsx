@@ -40,6 +40,19 @@ export default function CreateCandidatoModal({ isOpen, activeElection, candidato
   const [error, setError] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setIsDropdownOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
   useEffect(() => {
     if (isOpen && activeElection) {
       loadPartidos();
@@ -104,6 +117,12 @@ export default function CreateCandidatoModal({ isOpen, activeElection, candidato
       return;
     }
 
+    const dniYaExiste = candidatos.find(c => c.dni === dni);
+    if (dniYaExiste) {
+      setError('Ya existe un candidato registrado con este DNI.');
+      return;
+    }
+
     const yaExiste = candidatos.find(c => {
         if (c.partido.id !== partidoId || c.cargo !== cargo) return false;
         
@@ -126,21 +145,27 @@ export default function CreateCandidatoModal({ isOpen, activeElection, candidato
 
     setLoading(true);
     try {
-      const formData = new FormData();
-      formData.append('nombre', nombre);
-      formData.append('apellidos', apellidos);
-      formData.append('dni', dni);
-      formData.append('cargo', cargo);
-      formData.append('partidoId', partidoId);
-      formData.append('electionId', activeElection!.id);
-      
-      if (region) formData.append('region', region);
-      if (cargo !== CargoCandidato.REGIONAL && provincia) formData.append('provincia', provincia);
-      if (cargo === CargoCandidato.DISTRITAL && distrito) formData.append('distrito', distrito);
-      
-      if (fotoFile) formData.append('foto', fotoFile);
+      // Agregar un pequeño retraso artificial
+      await new Promise(resolve => setTimeout(resolve, 1000));
 
-      await candidatoService.create(formData);
+      let uploadedFotoUrl = '';
+      if (fotoFile) {
+        const uploadResult = await candidatoService.uploadFoto(fotoFile);
+        uploadedFotoUrl = uploadResult.fotoUrl;
+      }
+
+      await candidatoService.create({
+        nombre,
+        apellidos,
+        dni,
+        cargo,
+        partidoId,
+        electionId: activeElection!.id,
+        region: region || undefined,
+        provincia: cargo !== CargoCandidato.REGIONAL && provincia ? provincia : undefined,
+        distrito: cargo === CargoCandidato.DISTRITAL && distrito ? distrito : undefined,
+        fotoUrl: uploadedFotoUrl || undefined
+      });
       
       let hasWarning = false;
       if (cargo === CargoCandidato.REGIONAL && !region) hasWarning = true;
@@ -173,7 +198,7 @@ export default function CreateCandidatoModal({ isOpen, activeElection, candidato
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-      <div className="w-full max-w-lg rounded-xl bg-white shadow-[0_10px_35px_rgba(0,0,0,0.1)] overflow-hidden max-h-[90vh] flex flex-col">
+      <div className="w-full max-w-2xl rounded-xl bg-white shadow-[0_10px_35px_rgba(0,0,0,0.1)] overflow-hidden max-h-[90vh] flex flex-col">
         {/* Header */}
         <div className="flex items-center justify-between border-b border-line px-5 py-4 bg-[#f8fafc]">
           <h2 className="text-base font-extrabold text-[#172b4d]">Inscribir Nuevo Candidato</h2>
@@ -183,7 +208,16 @@ export default function CreateCandidatoModal({ isOpen, activeElection, candidato
         </div>
 
         {/* Form */}
-        <div className="overflow-y-auto p-5">
+        <div className="overflow-y-auto p-5 relative">
+          {loading && (
+            <div className="absolute inset-0 z-10 flex flex-col items-center justify-center bg-white/70 backdrop-blur-[1px] rounded-b-xl">
+              <svg className="h-10 w-10 animate-spin text-blue-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+              </svg>
+              <span className="mt-3 text-sm font-bold text-blue-600">Inscribiendo candidato...</span>
+            </div>
+          )}
             <form id="create-candidato-form" onSubmit={handleSubmit}>
             {error && (
                 <div className="mb-4 rounded bg-red-50 p-3 text-xs font-medium text-red-600 border border-red-200">
@@ -195,8 +229,8 @@ export default function CreateCandidatoModal({ isOpen, activeElection, candidato
             <div className="mb-5 flex flex-col items-center justify-center">
                 <label className="mb-2 block text-[12px] font-bold text-[#071f43] self-start">Fotografía del Candidato (Opcional)</label>
                 <div 
-                onClick={() => fileInputRef.current?.click()}
-                className="relative flex h-24 w-24 cursor-pointer items-center justify-center rounded-full border-2 border-dashed border-[#bdc8d5] bg-slate-50 overflow-hidden hover:border-blue-500 hover:bg-blue-50 transition-colors group"
+                onClick={() => !loading && fileInputRef.current?.click()}
+                className={`relative flex h-24 w-24 ${loading ? 'cursor-not-allowed opacity-70' : 'cursor-pointer hover:border-blue-500 hover:bg-blue-50'} items-center justify-center rounded-full border-2 border-dashed border-[#bdc8d5] bg-slate-50 overflow-hidden transition-colors group`}
                 >
                 {previewUrl ? (
                     <img src={previewUrl} alt="Preview" className="h-full w-full object-cover" />
@@ -206,7 +240,7 @@ export default function CreateCandidatoModal({ isOpen, activeElection, candidato
                     <span className="text-[10px] font-bold mt-1">Subir Foto</span>
                     </div>
                 )}
-                {previewUrl && (
+                {previewUrl && !loading && (
                     <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
                     <CloudUploadOutlinedIcon className="text-white" />
                     </div>
@@ -218,6 +252,7 @@ export default function CreateCandidatoModal({ isOpen, activeElection, candidato
                 className="hidden" 
                 accept="image/*"
                 onChange={handleImageChange}
+                disabled={loading}
                 />
             </div>
 
@@ -229,6 +264,7 @@ export default function CreateCandidatoModal({ isOpen, activeElection, candidato
                         value={nombre}
                         onChange={(e) => setNombre(e.target.value)}
                         className="w-full p-2.5 text-[13px] border border-[#bdc8d5] rounded-md outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500/20 transition-all" 
+                  disabled={loading}
                     />
                 </div>
                 <div>
@@ -238,6 +274,7 @@ export default function CreateCandidatoModal({ isOpen, activeElection, candidato
                         value={apellidos}
                         onChange={(e) => setApellidos(e.target.value)}
                         className="w-full p-2.5 text-[13px] border border-[#bdc8d5] rounded-md outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500/20 transition-all" 
+                  disabled={loading}
                     />
                 </div>
             </div>
@@ -251,19 +288,64 @@ export default function CreateCandidatoModal({ isOpen, activeElection, candidato
                         value={dni}
                         onChange={(e) => setDni(e.target.value.replace(/\D/g, ''))}
                         className="w-full p-2.5 text-[13px] border border-[#bdc8d5] rounded-md outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500/20 transition-all" 
+                  disabled={loading}
                     />
                 </div>
                 <div>
                     <label className="mb-1 block text-[12px] font-bold text-[#071f43]">Organización Política *</label>
-                    <select
-                        value={partidoId}
-                        onChange={(e) => setPartidoId(e.target.value)}
-                        className="w-full p-2.5 text-[13px] border border-[#bdc8d5] rounded-md outline-none focus:border-blue-500 bg-white"
-                    >
-                        {partidos.map(p => (
-                            <option key={p.id} value={p.id}>{p.nombre}</option>
-                        ))}
-                    </select>
+                    <div className="relative" ref={dropdownRef}>
+                      <div 
+                        onClick={() => !loading && setIsDropdownOpen(!isDropdownOpen)}
+                        className={`w-full p-2.5 text-[13px] border border-[#bdc8d5] rounded-md outline-none bg-white flex items-center justify-between transition-all ${loading ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer focus:border-blue-500 focus:ring-1 focus:ring-blue-500/20 hover:border-blue-400'}`}
+                        tabIndex={0}
+                      >
+                        {partidoId ? (
+                          <div className="flex items-center gap-2">
+                            {(() => {
+                              const selectedPartido = partidos.find(p => p.id === partidoId);
+                              return selectedPartido ? (
+                                <>
+                                  {selectedPartido.logo_url ? (
+                                    <img src={selectedPartido.logo_url} alt="Logo" className="w-5 h-5 object-contain rounded-full border border-line" />
+                                  ) : (
+                                    <div className="w-5 h-5 bg-slate-200 rounded-full flex items-center justify-center text-[8px] font-bold text-slate-500">?</div>
+                                  )}
+                                  <span className="truncate max-w-[150px]" title={selectedPartido.nombre}>{selectedPartido.nombre}</span>
+                                </>
+                              ) : <span className="text-slate-400">Seleccionar...</span>;
+                            })()}
+                          </div>
+                        ) : (
+                          <span className="text-slate-400">Seleccione un partido</span>
+                        )}
+                        <svg className={`w-4 h-4 text-slate-400 transition-transform ${isDropdownOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path></svg>
+                      </div>
+                      
+                      {isDropdownOpen && (
+                        <div className="absolute z-50 w-full mt-1 bg-white border border-[#bdc8d5] rounded-md shadow-lg max-h-48 overflow-y-auto">
+                          {partidos.map(p => (
+                            <div 
+                              key={p.id}
+                              onClick={() => {
+                                setPartidoId(p.id);
+                                setIsDropdownOpen(false);
+                              }}
+                              className={`flex items-center gap-2 px-2.5 py-1.5 text-[12px] cursor-pointer hover:bg-blue-50 transition-colors ${partidoId === p.id ? 'bg-blue-50/50 font-bold text-blue-700' : 'text-[#172b4d]'}`}
+                            >
+                              {p.logo_url ? (
+                                <img src={p.logo_url} alt="Logo" className="w-5 h-5 object-contain rounded-full border border-line bg-white" />
+                              ) : (
+                                <div className="w-5 h-5 bg-slate-200 rounded-full flex items-center justify-center text-[9px] font-bold text-slate-500">?</div>
+                              )}
+                              <span className="truncate">{p.nombre}</span>
+                            </div>
+                          ))}
+                          {partidos.length === 0 && (
+                            <div className="p-3 text-center text-slate-500 text-[12px]">No hay partidos registrados</div>
+                          )}
+                        </div>
+                      )}
+                    </div>
                 </div>
             </div>
 
@@ -273,6 +355,7 @@ export default function CreateCandidatoModal({ isOpen, activeElection, candidato
                     value={cargo}
                     onChange={(e) => setCargo(e.target.value as CargoCandidato)}
                     className="w-full p-2.5 text-[13px] border border-[#bdc8d5] rounded-md outline-none focus:border-blue-500 bg-white"
+                disabled={loading}
                 >
                     <option value={CargoCandidato.REGIONAL}>Gobernador Regional</option>
                     <option value={CargoCandidato.PROVINCIAL}>Alcalde Provincial</option>
@@ -327,11 +410,12 @@ export default function CreateCandidatoModal({ isOpen, activeElection, candidato
         </div>
         
         {/* Actions Footer */}
-        <div className="flex justify-end gap-3 border-t border-line px-5 py-4 bg-[#f8fafc]">
+        <div className="flex justify-end gap-3 border-t border-line px-5 py-4 bg-[#f8fafc] relative z-20">
             <button 
                 type="button" 
                 onClick={handleClose}
-                className="px-4 py-2 rounded-md text-[13px] font-bold text-[#52637d] border border-line hover:bg-slate-50 transition-colors"
+            disabled={loading}
+            className="px-4 py-2 rounded-md text-[13px] font-bold text-[#52637d] border border-line hover:bg-slate-50 transition-colors disabled:opacity-50"
             >
                 Cancelar
             </button>
@@ -339,9 +423,17 @@ export default function CreateCandidatoModal({ isOpen, activeElection, candidato
                 type="submit" 
                 form="create-candidato-form"
                 disabled={loading}
-                className="px-4 py-2 rounded-md text-[13px] font-bold text-white bg-blue-600 hover:bg-blue-700 transition-colors disabled:opacity-70 flex items-center justify-center min-w-[120px]"
+            className="px-4 py-2 cursor-pointer rounded-md text-[13px] font-bold text-white bg-blue-600 hover:bg-blue-700 transition-colors disabled:opacity-90 flex items-center justify-center min-w-[160px] gap-2 shadow-sm"
             >
-                {loading ? 'Inscribiendo...' : 'Inscribir Candidato'}
+            {loading ? (
+              <>
+                <svg className="h-4 w-4 animate-spin text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                Inscribiendo...
+              </>
+            ) : 'Inscribir Candidato'}
             </button>
         </div>
       </div>

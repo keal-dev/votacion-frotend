@@ -44,6 +44,18 @@ export default function EleccionesPage() {
         }
     };
 
+    const handleActivateElection = async (eleccion: Election) => {
+        if (eleccion.activa) return;
+        
+        try {
+            await electionService.update(eleccion.id, { activa: true });
+            loadElecciones();
+        } catch (error) {
+            console.error("Error al activar elección", error);
+            alert("No se pudo activar la elección");
+        }
+    };
+
     const loadElecciones = async () => {
         try {
             setLoading(true);
@@ -129,7 +141,8 @@ export default function EleccionesPage() {
             <DeleteConfirmModal
                 isOpen={isDeleteModalOpen}
                 title="Eliminar Elección"
-                message={`¿Estás seguro de que deseas eliminar la elección "${electionToDelete?.nombre}"? Esta acción no se puede deshacer.`}
+                message={`¿Estás seguro de que deseas eliminar la elección "${electionToDelete?.nombre}"? 
+⚠️ ADVERTENCIA CRÍTICA: Esta acción es irreversible y ELIMINARÁ EN CASCADA a todos los Partidos Políticos, Candidatos, Mesas Electorales y Usuarios (Personeros) asociados a esta elección.`}
                 onConfirm={confirmDelete}
                 onCancel={() => setIsDeleteModalOpen(false)}
                 loading={isDeleting}
@@ -178,15 +191,19 @@ export default function EleccionesPage() {
                                         </td>
                                         <td className="px-5 py-4 text-center">
                                             {eleccion.activa ? (
-                                                <span className="inline-flex items-center gap-1.5 rounded-full bg-blue-50 px-2.5 py-1 text-xs font-bold text-blue-700 border border-blue-200">
+                                                <span className="inline-flex items-center gap-1.5 rounded-full bg-green-50 px-2.5 py-1 text-xs font-bold text-green-700 border border-green-200 cursor-default">
                                                     <CheckCircleIcon style={{ fontSize: 14 }} />
                                                     ACTIVA
                                                 </span>
                                             ) : (
-                                                <span className="inline-flex items-center gap-1.5 rounded-full bg-slate-100 px-2.5 py-1 text-xs font-bold text-slate-500 border border-slate-200">
+                                                <button 
+                                                    onClick={() => handleActivateElection(eleccion)}
+                                                    title="Haz clic para activar esta elección"
+                                                    className="inline-flex items-center gap-1.5 rounded-full bg-slate-100 px-2.5 py-1 text-xs font-bold text-slate-500 border border-slate-200 hover:bg-blue-50 hover:text-blue-600 hover:border-blue-200 transition-all active:scale-95 cursor-pointer"
+                                                >
                                                     <RadioButtonUncheckedIcon style={{ fontSize: 14 }} />
                                                     INACTIVA
-                                                </span>
+                                                </button>
                                             )}
                                         </td>
                                         <td className="px-5 py-4 text-center">

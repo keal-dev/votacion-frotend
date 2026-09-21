@@ -18,10 +18,6 @@ export default function AjustesGeneralesPage() {
   // UI States
   const [saveStatus, setSaveStatus] = useState<'idle' | 'success' | 'error'>('idle');
   const [errorMessage, setErrorMessage] = useState('');
-  
-  // Confirm Modal States
-  const [maintenanceConfirmOpen, setMaintenanceConfirmOpen] = useState(false);
-  const [pendingMaintenanceValue, setPendingMaintenanceValue] = useState(false);
 
   useEffect(() => {
     fetchSettings();
@@ -67,22 +63,7 @@ export default function AjustesGeneralesPage() {
     }
   };
 
-  const handleToggleMaintenance = async () => {
-    try {
-      const dataToSave = { ...formData, maintenance_mode: pendingMaintenanceValue };
-      if (dataToSave.global_announcement === "") {
-        dataToSave.global_announcement = null;
-      }
-      const updated = await settingsService.updateSettings(dataToSave);
-      updateSettingsLocally(updated);
-      setFormData(dataToSave);
-    } catch (error: any) {
-      console.error("Error al cambiar mantenimiento:", error);
-      alert("Error: " + (error.response?.data?.message || error.message));
-    } finally {
-      setMaintenanceConfirmOpen(false);
-    }
-  };
+
 
   const InputClass = "w-full p-2 px-3 bg-white border border-[#d0d7de] rounded-md outline-none focus:border-[#0969da] focus:ring-1 focus:ring-[#0969da] transition-colors text-sm shadow-[inset_0_1px_2px_rgba(0,0,0,0.075)]";
 
@@ -127,45 +108,7 @@ export default function AjustesGeneralesPage() {
           </div>
         </section>
 
-        {/* Reglas Técnicas */}
-        <section className="bg-white border border-[#d0d7de] rounded-xl shadow-sm overflow-hidden">
-          <div className="bg-[#f6f8fa] px-6 py-4 border-b border-[#d0d7de]">
-            <h2 className="text-[16px] font-semibold text-[#24292f]">Reglas Técnicas</h2>
-          </div>
-          <div className="p-6 space-y-5">
-            <div>
-              <label className="block text-sm font-semibold text-[#24292f] mb-2">Tolerancia GPS</label>
-              <div className="flex items-center gap-2">
-                <input 
-                  type="number" 
-                  className={InputClass}
-                  style={{maxWidth: '120px'}}
-                  value={formData.gps_tolerance_meters || ""}
-                  onChange={(e) => setFormData({...formData, gps_tolerance_meters: parseInt(e.target.value) || 0})}
-                />
-                <span className="text-sm text-[#57606a] font-medium">metros</span>
-              </div>
-              <small className="text-[#57606a] mt-2 block">Radio de tolerancia para que el personero registre su asistencia.</small>
-            </div>
-            
-            <hr className="border-[#eaeef2]" />
 
-            <div>
-              <label className="block text-sm font-semibold text-[#24292f] mb-2">Peso Máx. Foto de Acta</label>
-              <div className="flex items-center gap-2">
-                <input 
-                  type="number" 
-                  className={InputClass}
-                  style={{maxWidth: '120px'}}
-                  value={formData.max_photo_size_mb || ""}
-                  onChange={(e) => setFormData({...formData, max_photo_size_mb: parseInt(e.target.value) || 0})}
-                />
-                <span className="text-sm text-[#57606a] font-medium">MB</span>
-              </div>
-              <small className="text-[#57606a] mt-2 block">Límite de tamaño al intentar subir fotos, ideal para evitar envíos muy pesados.</small>
-            </div>
-          </div>
-        </section>
 
         {/* Botón de Guardar normal */}
         <div className="pt-2 flex flex-col sm:flex-row sm:items-center justify-end gap-3">
@@ -194,7 +137,7 @@ export default function AjustesGeneralesPage() {
             <h2 className="text-[16px] font-semibold text-[#cf222e]">Zona de Peligro</h2>
           </div>
 
-          <div className="p-6 flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-[#d0d7de]">
+          <div className="p-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
             <div>
               <h3 className="text-sm font-semibold text-[#24292f]">Restablecer Base de Datos</h3>
               <p className="text-sm text-[#57606a] mt-1">
@@ -211,32 +154,6 @@ export default function AjustesGeneralesPage() {
               </button>
             </div>
           </div>
-
-          <div className="p-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
-            <div>
-              <h3 className="text-sm font-semibold text-[#24292f]">Modo Mantenimiento Estricto</h3>
-              <p className="text-sm text-[#57606a] mt-1">
-                Al activarlo, bloquearás a todos los usuarios (excepto a ti).
-              </p>
-            </div>
-            
-            <div className="shrink-0 flex items-center">
-              <button
-                onClick={() => {
-                  const newValue = !formData.maintenance_mode;
-                  setPendingMaintenanceValue(newValue);
-                  setMaintenanceConfirmOpen(true);
-                }}
-                className={`px-4 py-2 font-semibold text-sm rounded-lg transition-colors shadow-sm border ${
-                  formData.maintenance_mode 
-                  ? 'bg-white text-[#cf222e] border-[#cf222e] hover:bg-[#ffebe9]' 
-                  : 'bg-[#f6f8fa] text-[#cf222e] border-[#d0d7de] hover:bg-[#f3f4f6]'
-                }`}
-              >
-                {formData.maintenance_mode ? 'Desactivar Modo Mantenimiento' : 'Activar Modo Mantenimiento'}
-              </button>
-            </div>
-          </div>
         </section>
 
       </div>
@@ -244,18 +161,6 @@ export default function AjustesGeneralesPage() {
       <ResetSystemModal 
         isOpen={isResetModalOpen} 
         onClose={() => setIsResetModalOpen(false)} 
-      />
-
-      <ConfirmModal
-        isOpen={maintenanceConfirmOpen}
-        title={pendingMaintenanceValue ? "Activar Modo Mantenimiento" : "Desactivar Modo Mantenimiento"}
-        message={pendingMaintenanceValue 
-          ? "¿Estás seguro de que deseas ACTIVAR el modo mantenimiento? Nadie más que tú podrá acceder a la plataforma." 
-          : "¿Deseas DESACTIVAR el modo mantenimiento y permitir el acceso a todos los usuarios nuevamente?"}
-        confirmText={pendingMaintenanceValue ? "Sí, activar" : "Sí, desactivar"}
-        type="danger"
-        onCancel={() => setMaintenanceConfirmOpen(false)}
-        onConfirm={handleToggleMaintenance}
       />
     </div>
   );

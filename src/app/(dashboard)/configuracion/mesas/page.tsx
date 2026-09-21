@@ -15,6 +15,8 @@ export default function MesasPage() {
     const [mesas, setMesas] = useState<Mesa[]>([]);
     const [activeElection, setActiveElection] = useState<Election | null>(null);
     const [loading, setLoading] = useState(true);
+    const [filterDistrito, setFilterDistrito] = useState<string>('ALL');
+    const [filterCentroPoblado, setFilterCentroPoblado] = useState<string>('ALL');
 
     // Drag & Drop state
     const [isDragging, setIsDragging] = useState(false);
@@ -24,6 +26,7 @@ export default function MesasPage() {
     const [uploadError, setUploadError] = useState<string | null>(null);
     const [uploadProgress, setUploadProgress] = useState(0);
     const [uploadStatusText, setUploadStatusText] = useState('');
+    const [csvRowCount, setCsvRowCount] = useState<number | null>(null);
 
     const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -49,6 +52,27 @@ export default function MesasPage() {
         loadData();
     }, []);
 
+    // Resetear filtro de centro poblado cuando cambia el distrito
+    useEffect(() => {
+        setFilterCentroPoblado('ALL');
+    }, [filterDistrito]);
+
+    const distritosUnicos = Array.from(new Set(mesas.map(m => m.local.distrito))).sort();
+
+    const centrosPobladosDisponibles = Array.from(
+        new Set(
+            mesas
+                .filter(m => (filterDistrito === 'ALL' || m.local.distrito === filterDistrito) && m.local.centro_poblado)
+                .map(m => m.local.centro_poblado as string)
+        )
+    ).sort();
+
+    const filteredMesas = mesas.filter(m => {
+        const matchDistrito = filterDistrito === 'ALL' || m.local.distrito === filterDistrito;
+        const matchCentroPoblado = filterCentroPoblado === 'ALL' || m.local.centro_poblado === filterCentroPoblado;
+        return matchDistrito && matchCentroPoblado;
+    });
+
     const handleDragOver = (e: React.DragEvent) => {
         e.preventDefault();
         setIsDragging(true);
@@ -69,11 +93,26 @@ export default function MesasPage() {
     const handleFileSelection = (file: File) => {
         setUploadError(null);
         setUploadSuccess(null);
+        setCsvRowCount(null);
+
         if (file.type !== "text/csv" && !file.name.endsWith('.csv')) {
             setUploadError("Por favor, selecciona un archivo CSV válido.");
             return;
         }
         setSelectedFile(file);
+
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            const text = e.target?.result as string;
+            if (text) {
+                // Separar por salto de línea y filtrar líneas vacías
+                const rows = text.split(/\r?\n/).filter(row => row.trim().length > 0);
+                // Restar 1 por la cabecera
+                const count = Math.max(0, rows.length - 1);
+                setCsvRowCount(count);
+            }
+        };
+        reader.readAsText(file);
     };
 
     const handleUpload = async () => {
@@ -112,6 +151,7 @@ export default function MesasPage() {
             
             setUploadSuccess(`¡Éxito! Se importaron ${response.count} mesas correctamente.`);
             setSelectedFile(null);
+            setCsvRowCount(null);
             loadData();
             
             setTimeout(() => {
@@ -135,6 +175,7 @@ export default function MesasPage() {
                 REGION: "LIMA",
                 PROVINCIA: "LIMA",
                 DISTRITO: "MIRAFLORES",
+                CENTRO_POBLADO: "",
                 LOCAL_NOMBRE: "IE JUANA ALARCO DE DAMMERT",
                 LOCAL_DIRECCION: "AV BENAVIDES 2315",
                 MESA_NUMERO: "045612",
@@ -144,17 +185,19 @@ export default function MesasPage() {
                 REGION: "LIMA",
                 PROVINCIA: "LIMA",
                 DISTRITO: "MIRAFLORES",
+                CENTRO_POBLADO: "",
                 LOCAL_NOMBRE: "IE JUANA ALARCO DE DAMMERT",
                 LOCAL_DIRECCION: "AV BENAVIDES 2315",
                 MESA_NUMERO: "045613",
                 CANTIDAD_ELECTORES: 298
             },
             {
-                REGION: "AREQUIPA",
-                PROVINCIA: "AREQUIPA",
-                DISTRITO: "CAYMA",
-                LOCAL_NOMBRE: "COLEGIO INDEPENDENCIA",
-                LOCAL_DIRECCION: "CALLE LOS ARCES 123",
+                REGION: "CAJAMARCA",
+                PROVINCIA: "JAEN",
+                DISTRITO: "BELLAVISTA",
+                CENTRO_POBLADO: "ROSARIO DE CHINGAMA",
+                LOCAL_NOMBRE: "IE 16045",
+                LOCAL_DIRECCION: "PLAZA PRINCIPAL",
                 MESA_NUMERO: "012345",
                 CANTIDAD_ELECTORES: 250
             }
@@ -183,6 +226,13 @@ export default function MesasPage() {
                         <span className="font-bold text-[#0b9349]">Mesas Electorales</span>
                     </div>
                 </div>
+
+                {activeElection && (
+                    <div className="flex items-center gap-2 rounded-full bg-green-50 px-4 py-2 border border-green-200 shadow-sm mt-2 sm:mt-0">
+                        <div className="w-2 h-2 rounded-full bg-[#0b9349] animate-pulse"></div>
+                        <span className="text-[13px] font-bold text-[#0b9349]">{activeElection.nombre}</span>
+                    </div>
+                )}
             </div>
 
             {!activeElection && !loading ? (
@@ -241,9 +291,14 @@ export default function MesasPage() {
                                     <div className="flex flex-col items-center">
                                         <InsertDriveFileOutlinedIcon className="mb-2 text-[#0b9349]" style={{ fontSize: 40 }} />
                                         <p className="text-sm font-bold text-[#172b4d]">{selectedFile.name}</p>
-                                        <p className="text-[11px] text-[#52637d] mt-1">
+                                            <p className="text-[11px] text-[#52637d] mt-1 mb-1">
                                             {(selectedFile.size / 1024).toFixed(1)} KB
                                         </p>
+                                            {csvRowCount !== null && (
+                                                <div className="mt-2 text-[12px] font-bold text-[#0b9349] bg-green-50 px-3 py-1.5 rounded-full border border-green-200">
+                                                    {csvRowCount} mesas detectadas
+                                                </div>
+                                            )}
                                     </div>
                                 ) : (
                                     <div className="flex flex-col items-center">
@@ -277,7 +332,7 @@ export default function MesasPage() {
                             <button
                                 onClick={handleUpload}
                                 disabled={!selectedFile || uploading}
-                                className="mt-5 w-full rounded-lg bg-[#0b9349] px-4 py-3 text-[13px] font-bold text-white shadow-sm transition hover:bg-[#087d3e] disabled:opacity-50 disabled:cursor-not-allowed"
+                                    className="mt-5 w-full cursor-pointer rounded-lg bg-[#0b9349] px-4 py-3 text-[13px] font-bold text-white shadow-sm transition hover:bg-[#087d3e] disabled:opacity-50 disabled:cursor-not-allowed"
                             >
                                 Procesar e Importar
                             </button>
@@ -287,14 +342,50 @@ export default function MesasPage() {
                     {/* Panel Derecho: Tabla de Mesas */}
                     <div className="lg:col-span-2">
                         <div className="rounded-2xl border border-line bg-white shadow-[0_2px_10px_rgba(0,0,0,0.02)] overflow-hidden flex flex-col h-full">
-                            <div className="border-b border-line px-5 py-4 flex justify-between items-center bg-[#f8fafc]">
-                                <h2 className="text-[15px] font-bold text-[#172b4d]">
-                                    Mesas Registradas
-                                </h2>
-                                <span className="bg-[#e3fcee] text-[#0b9349] px-2.5 py-1 rounded-full text-xs font-bold border border-[#bbf4d5]">
-                                    {mesas.length} Totales
-                                </span>
-                            </div>
+                                <div className="border-b border-line px-5 py-4 bg-[#f8fafc]">
+                                    <div className="flex justify-between items-center mb-3">
+                                        <h2 className="text-[15px] font-bold text-[#172b4d]">
+                                            Mesas Registradas
+                                        </h2>
+                                        <span className="bg-[#e3fcee] text-[#0b9349] px-2.5 py-1 rounded-full text-xs font-bold border border-[#bbf4d5]">
+                                            {filteredMesas.length} Totales
+                                        </span>
+                                    </div>
+
+                                    {mesas.length > 0 && (
+                                        <div className="flex flex-col sm:flex-row gap-3">
+                                            <div className="flex items-center gap-2">
+                                                <span className="text-[11px] font-bold text-[#52637d]">DISTRITO:</span>
+                                                <select
+                                                    value={filterDistrito}
+                                                    onChange={(e) => setFilterDistrito(e.target.value)}
+                                                    className="rounded border border-line bg-white px-2 py-1 text-[12px] font-medium text-[#172b4d] outline-none shadow-sm focus:border-[#0b9349]"
+                                                >
+                                                    <option value="ALL">Todos</option>
+                                                    {distritosUnicos.map(d => (
+                                                        <option key={d} value={d}>{d}</option>
+                                                    ))}
+                                                </select>
+                                            </div>
+
+                                            {centrosPobladosDisponibles.length > 0 && (
+                                                <div className="flex items-center gap-2">
+                                                    <span className="text-[11px] font-bold text-[#52637d]">C. POBLADO:</span>
+                                                    <select
+                                                        value={filterCentroPoblado}
+                                                        onChange={(e) => setFilterCentroPoblado(e.target.value)}
+                                                        className="rounded border border-line bg-white px-2 py-1 text-[12px] font-medium text-[#172b4d] outline-none shadow-sm focus:border-[#0b9349] max-w-[150px] truncate"
+                                                    >
+                                                        <option value="ALL">Todos</option>
+                                                        {centrosPobladosDisponibles.map(cp => (
+                                                            <option key={cp} value={cp}>{cp}</option>
+                                                        ))}
+                                                    </select>
+                                                </div>
+                                            )}
+                                        </div>
+                                    )}
+                                </div>
 
                             <div className="flex-1 overflow-auto max-h-[600px]">
                                 <table className="w-full text-left text-sm text-[#52637d]">
@@ -316,16 +407,16 @@ export default function MesasPage() {
                                                     </div>
                                                 </td>
                                             </tr>
-                                        ) : mesas.length === 0 ? (
+                                            ) : filteredMesas.length === 0 ? (
                                             <tr>
                                                 <td colSpan={4} className="px-5 py-12 text-center text-[#52637d]">
                                                     <InsertDriveFileOutlinedIcon className="mb-2 text-[#dfe1e6]" style={{ fontSize: 48 }} />
-                                                    <p className="font-bold text-[#172b4d]">No hay mesas registradas</p>
-                                                    <p className="text-xs mt-1">Utiliza el panel izquierdo para importar mesas mediante CSV.</p>
+                                                            <p className="font-bold text-[#172b4d]">No hay mesas que coincidan con los filtros</p>
+                                                            {mesas.length === 0 && <p className="text-xs mt-1">Utiliza el panel izquierdo para importar mesas mediante CSV.</p>}
                                                 </td>
                                             </tr>
                                         ) : (
-                                            mesas.map((mesa) => (
+                                                        filteredMesas.map((mesa) => (
                                                 <tr key={mesa.id} className="hover:bg-[#f8fafc] transition-colors group">
                                                     <td className="px-5 py-3 font-bold text-[#172b4d]">
                                                         {mesa.numero_mesa}
@@ -335,7 +426,7 @@ export default function MesasPage() {
                                                         <div className="text-[11px] text-[#52637d] mt-0.5">{mesa.local.direccion}</div>
                                                     </td>
                                                     <td className="px-5 py-3">
-                                                        <div className="text-[12px] font-medium">{mesa.local.distrito}</div>
+                                                                    <div className="text-[12px] font-medium">{mesa.local.centro_poblado ? `${mesa.local.centro_poblado} (${mesa.local.distrito})` : mesa.local.distrito}</div>
                                                         <div className="text-[11px] text-[#52637d]">{mesa.local.provincia}, {mesa.local.region}</div>
                                                     </td>
                                                     <td className="px-5 py-3 text-center">

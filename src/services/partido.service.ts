@@ -7,22 +7,22 @@ export const partidoService = {
     return data;
   },
 
-  async create(formData: FormData): Promise<Partido> {
-    // Se usa FormData porque se enviará un archivo de imagen (logo)
-    const { data } = await axiosInstance.post('/partidos', formData, {
-      headers: {
-        'Content-Type': 'multipart/form-data',
-      },
+  async uploadLogo(file: File): Promise<{ logoUrl: string }> {
+    const formData = new FormData();
+    formData.append('logo', file);
+    const { data } = await axiosInstance.post('/partidos/upload-logo', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
     });
     return data;
   },
 
-  async update(id: string, formData: FormData): Promise<Partido> {
-    const { data } = await axiosInstance.patch(`/partidos/${id}`, formData, {
-      headers: {
-        'Content-Type': 'multipart/form-data',
-      },
-    });
+  async create(partidoData: { nombre: string; siglas: string; electionId: string; logoUrl?: string }): Promise<Partido> {
+    const { data } = await axiosInstance.post('/partidos', partidoData);
+    return data;
+  },
+
+  async update(id: string, partidoData: { nombre?: string; siglas?: string; logoUrl?: string }): Promise<Partido> {
+    const { data } = await axiosInstance.patch(`/partidos/${id}`, partidoData);
     return data;
   },
 

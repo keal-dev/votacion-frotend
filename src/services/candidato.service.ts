@@ -13,8 +13,10 @@ export const candidatoService = {
     return data;
   },
 
-  async create(formData: FormData): Promise<Candidato> {
-    const { data } = await axiosInstance.post('/candidatos', formData, {
+  async uploadFoto(file: File): Promise<{ fotoUrl: string }> {
+    const formData = new FormData();
+    formData.append('foto', file);
+    const { data } = await axiosInstance.post('/candidatos/upload-foto', formData, {
       headers: {
         'Content-Type': 'multipart/form-data',
       },
@@ -22,12 +24,13 @@ export const candidatoService = {
     return data;
   },
 
-  async update(id: string, formData: FormData): Promise<Candidato> {
-    const { data } = await axiosInstance.patch(`/candidatos/${id}`, formData, {
-      headers: {
-        'Content-Type': 'multipart/form-data',
-      },
-    });
+  async create(payload: Partial<Candidato> & { electionId: string, partidoId: string, fotoUrl?: string }): Promise<Candidato> {
+    const { data } = await axiosInstance.post('/candidatos', payload);
+    return data;
+  },
+
+  async update(id: string, payload: Partial<Candidato> & { fotoUrl?: string }): Promise<Candidato> {
+    const { data } = await axiosInstance.patch(`/candidatos/${id}`, payload);
     return data;
   },
 

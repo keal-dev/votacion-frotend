@@ -1,12 +1,15 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useAuthStore } from "@/store/auth.store";
 import axiosInstance from "@/utils/axios";
 import FactCheckIcon from '@mui/icons-material/FactCheck';
 import VisibilityIcon from '@mui/icons-material/Visibility';
 import ImageSearchIcon from '@mui/icons-material/ImageSearch';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
+import FileUploadIcon from '@mui/icons-material/FileUpload';
+import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown';
+import KeyboardArrowUpIcon from '@mui/icons-material/KeyboardArrowUp';
 import { useRouter, useParams } from "next/navigation";
 
 const getOptimizedUrl = (url: string, type: 'thumb' | 'main') => {
@@ -25,15 +28,49 @@ export default function ActaDetallePage() {
   const { user } = useAuthStore();
   const router = useRouter();
   const params = useParams();
-  const actaId = params?.id as string;
-  
+  const actaId = params.id as string;
   const [selectedActa, setSelectedActa] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [activeImage, setActiveImage] = useState<string>('');
+  const [transformOrigin, setTransformOrigin] = useState('center center');
   
   const [isEditing, setIsEditing] = useState(false);
   const [editedVotos, setEditedVotos] = useState<Record<string, number>>({});
   const [isSaving, setIsSaving] = useState(false);
+  const [expandedLevel, setExpandedLevel] = useState<string>('REGIONAL');
+
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [isUploadingFotos, setIsUploadingFotos] = useState(false);
+
+  const handleUploadFotos = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!e.target.files || e.target.files.length === 0) return;
+    
+    setIsUploadingFotos(true);
+    try {
+      const formData = new FormData();
+      Array.from(e.target.files).forEach(file => {
+        formData.append('fotos_actas', file);
+      });
+      
+      await axiosInstance.post(`/actas/${selectedActa.id}/fotos`, formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      });
+      
+      // Refresh acta
+      const { data } = await axiosInstance.get(`/actas/auditoria/${actaId}`);
+      setSelectedActa(data);
+      if (data.fotos && data.fotos.length > 0) {
+        setActiveImage(data.fotos[0].url);
+      }
+      alert("Fotos subidas exitosamente");
+    } catch (error) {
+      console.error("Error uploading fotos", error);
+      alert("Error al subir las fotos");
+    } finally {
+      setIsUploadingFotos(false);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    }
+  };
 
   useEffect(() => {
     if (!user) return;
@@ -45,6 +82,11 @@ export default function ActaDetallePage() {
           setSelectedActa(data);
           if (data?.fotos?.length > 0) {
             setActiveImage(data.fotos[0].url);
+          }
+          const levels = ['REGIONAL', 'PROVINCIAL', 'DISTRITAL'];
+          const firstLevel = levels.find(lvl => data?.votos?.some((v: any) => v.nivel === lvl));
+          if (firstLevel) {
+            setExpandedLevel(firstLevel);
           }
         } catch (error) {
           console.error("Error fetching acta", error);
@@ -84,7 +126,7 @@ export default function ActaDetallePage() {
   }
 
   return (
-    <div className="max-w-[1600px] mx-auto py-4 px-4 sm:px-6 lg:px-8 animate-in fade-in slide-in-from-bottom-4 duration-500 h-[calc(100vh-80px)] flex flex-col">
+    <div className="w-full mx-auto py-4 px-2 sm:px-4 animate-in fade-in slide-in-from-bottom-4 duration-500 h-[calc(100vh-80px)] flex flex-col">
       <div className="mb-4 shrink-0 flex items-center justify-between">
         <div className="flex items-center gap-4">
           <button 
@@ -166,18 +208,48 @@ export default function ActaDetallePage() {
               <img 
                 src={getOptimizedUrl(activeImage, 'main')} 
                 alt="Foto del Acta" 
-                className="max-w-full max-h-full object-contain cursor-zoom-in hover:scale-150 transition-transform duration-300 origin-center"
+                onMouseMove={(e) => {
+                  const { left, top, width, height } = e.currentTarget.getBoundingClientRect();
+                  const x = ((e.clientX - left) / width) * 100;
+                  const y = ((e.clientY - top) / height) * 100;
+                  setTransformOrigin(`${x}% ${y}%`);
+                }}
+                onMouseLeave={() => setTransformOrigin('center center')}
+                style={{ transformOrigin }}
+                className="max-w-full max-h-full object-contain cursor-crosshair hover:scale-[2.5] transition-transform duration-200"
                 title="Pasa el mouse para hacer zoom"
               />
-              <div className="absolute top-4 left-4 bg-black/60 text-white px-3 py-1.5 rounded-lg backdrop-blur-sm flex items-center gap-2 pointer-events-none text-sm">
-                <ImageSearchIcon fontSize="small" /> Zoom al hacer hover
+              <div className="absolute top-4 left-4 flex gap-2">
+                <button
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={isUploadingFotos}
+                  className="bg-blue-600/80 text-white px-3 py-1.5 rounded-lg backdrop-blur-sm flex items-center gap-2 text-sm hover:bg-blue-600 transition-colors"
+                >
+                  <FileUploadIcon fontSize="small" /> {isUploadingFotos ? 'Subiendo...' : 'Añadir Fotos'}
+                </button>
               </div>
             </div>
           ) : (
-            <div className="flex-1 flex items-center justify-center text-white/50 text-sm">
-              No hay foto disponible para esta acta.
+            <div className="flex-1 flex flex-col items-center justify-center text-white/50 text-sm gap-4">
+              <p>No hay foto disponible para esta acta.</p>
+              <button
+                onClick={() => fileInputRef.current?.click()}
+                disabled={isUploadingFotos}
+                className="bg-blue-600 text-white px-4 py-2 rounded-lg flex items-center gap-2 text-sm font-bold hover:bg-blue-700 transition-colors"
+              >
+                <FileUploadIcon fontSize="small" /> {isUploadingFotos ? 'Subiendo...' : 'Subir Fotos Ahora'}
+              </button>
             </div>
           )}
+          
+          <input 
+            type="file" 
+            ref={fileInputRef} 
+            onChange={handleUploadFotos} 
+            multiple 
+            accept="image/*" 
+            className="hidden" 
+          />
           
           {selectedActa.fotos && selectedActa.fotos.length > 1 && (
             <div className="bg-[#091522] p-3 flex gap-2 overflow-x-auto border-t border-white/10 shrink-0">
@@ -196,16 +268,18 @@ export default function ActaDetallePage() {
 
         {/* Panel Derecho: Datos Transcritos y Edición */}
         <div className="w-full lg:w-2/5 bg-white border border-[#d0d7de] rounded-xl shadow-sm flex flex-col overflow-hidden">
-          <div className="bg-[#f6f8fa] border-b border-[#d0d7de] px-5 py-4 shrink-0 flex justify-between items-center">
-            <h3 className="text-[15px] font-extrabold text-[#172b4d] flex items-center gap-2">
-              <VisibilityIcon className="text-purple-600" />
-              Datos Transcritos
-            </h3>
-            <div className="text-right flex items-center gap-4">
-              <div>
-                <span className="block text-[11px] text-[#8993a4]">Total Votos</span>
-                <span className="block text-sm font-bold text-[#172b4d]">{selectedActa.ciudadanos_votaron}</span>
+          <div className="bg-[#f6f8fa] border-b border-[#d0d7de] px-5 py-3 shrink-0 flex justify-end items-center">
+            
+            <div className="flex items-center gap-4">
+              <div className="flex items-baseline gap-2">
+                <span className="text-[11px] font-bold text-[#52637d] uppercase tracking-wider">Electores (Mesa):</span>
+                <span className="text-[15px] font-black text-[#172b4d]">
+                  {selectedActa.mesa?.cantidad_electores || 0}
+                </span>
               </div>
+              
+              <div className="h-5 w-px bg-[#d0d7de]"></div>
+
               {!isEditing ? (
                 <button 
                   onClick={() => {
@@ -216,7 +290,7 @@ export default function ActaDetallePage() {
                     setEditedVotos(initialVotes);
                     setIsEditing(true);
                   }}
-                  className="bg-blue-50 text-blue-600 px-3 py-1.5 rounded-lg text-xs font-bold border border-blue-200 hover:bg-blue-100 transition-colors"
+                  className="bg-white text-[#172b4d] px-3 py-1.5 rounded-md text-xs font-bold border border-[#d0d7de] shadow-sm hover:bg-[#f3f4f6] transition-all"
                 >
                   Editar Votos
                 </button>
@@ -224,7 +298,7 @@ export default function ActaDetallePage() {
                 <div className="flex gap-2">
                   <button 
                     onClick={() => setIsEditing(false)}
-                    className="bg-slate-100 text-slate-600 px-3 py-1.5 rounded-lg text-xs font-bold border border-slate-200 hover:bg-slate-200 transition-colors"
+                    className="bg-white text-[#52637d] px-3 py-1.5 rounded-md text-xs font-bold border border-[#d0d7de] hover:bg-[#f3f4f6] transition-all"
                     disabled={isSaving}
                   >
                     Cancelar
@@ -269,41 +343,68 @@ export default function ActaDetallePage() {
               if (!votosCargo || votosCargo.length === 0) return null;
 
               return (
-                <div key={cargo} className="mb-6 last:mb-0">
-                  <h4 className="text-[13px] font-bold text-white bg-slate-800 px-3 py-1.5 rounded-t-lg uppercase tracking-wide flex justify-between items-center">
-                    <span>Nivel {cargo.toLowerCase()}</span>
-                    <span className="text-[10px] bg-slate-700 px-2 py-0.5 rounded">
+                <div key={cargo} className="mb-4 last:mb-0 border border-slate-200 rounded-lg overflow-hidden bg-white shadow-sm">
+                  <div 
+                    className="bg-slate-800 px-4 py-3 flex justify-between items-center cursor-pointer hover:bg-slate-700 transition-colors"
+                    onClick={() => setExpandedLevel(expandedLevel === cargo ? '' : cargo)}
+                  >
+                    <div className="flex items-center gap-3">
+                      {expandedLevel === cargo ? 
+                        <KeyboardArrowUpIcon className="text-white/70" /> : 
+                        <KeyboardArrowDownIcon className="text-white/70" />
+                      }
+                      <h4 className="text-[14px] font-bold text-white uppercase tracking-wide">
+                        Nivel {cargo.toLowerCase()}
+                      </h4>
+                    </div>
+                    <span className="text-[11px] font-bold bg-slate-700/50 text-white/90 px-2.5 py-1 rounded-md border border-slate-600">
                       Suma: {votosCargo.reduce((acc: number, v: any) => acc + (isEditing ? (editedVotos[v.id] ?? v.cantidad) : v.cantidad), 0)}
                     </span>
-                  </h4>
-                  <div className="border border-slate-200 border-t-0 rounded-b-lg overflow-hidden bg-white">
-                    <table className="w-full text-sm">
-                      <tbody>
-                        {votosCargo.map((voto: any, i: number) => (
-                          <tr key={voto.id} className={`border-b border-slate-100 last:border-0 ${i % 2 === 0 ? 'bg-white' : 'bg-slate-50/50'}`}>
-                            <td className="p-2.5 px-4 font-medium text-slate-700">
-                              {voto.tipo === 'CANDIDATO' ? (voto.candidato?.partido?.nombre || 'Independiente') : (voto.tipo === 'BLANCO' ? 'Votos en Blanco' : voto.tipo === 'NULO' ? 'Votos Nulos' : 'Votos Impugnados')}
-                            </td>
-                            <td className="p-2.5 px-4 text-right">
-                              {isEditing ? (
-                                <input 
-                                  type="number" 
-                                  min="0"
-                                  value={editedVotos[voto.id] ?? voto.cantidad}
-                                  onChange={(e) => setEditedVotos(prev => ({ ...prev, [voto.id]: parseInt(e.target.value) || 0 }))}
-                                  className="w-16 text-center text-sm border border-blue-400 rounded px-1 py-0.5 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                />
-                              ) : (
-                                <span className="inline-block min-w-[32px] text-center font-bold bg-slate-100 px-2 py-0.5 rounded text-slate-800 border border-slate-200">
-                                  {voto.cantidad}
-                                </span>
-                              )}
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
                   </div>
+                  
+                  {expandedLevel === cargo && (
+                    <div className="border-t border-slate-200">
+                      <table className="w-full text-sm">
+                        <tbody>
+                          {votosCargo.map((voto: any, i: number) => (
+                            <tr key={voto.id} className={`border-b border-slate-100 last:border-0 ${voto.tipo !== 'CANDIDATO' ? 'bg-slate-50' : (i % 2 === 0 ? 'bg-white' : 'bg-slate-50/30')}`}>
+                              <td className="p-1.5 px-4 font-medium text-slate-700">
+                                {voto.tipo === 'CANDIDATO' ? (
+                                  <div className="flex items-center gap-2">
+                                    {voto.candidato?.partido?.logo_url && (
+                                      <img src={getOptimizedUrl(voto.candidato.partido.logo_url, 'thumb')} alt="" className="w-5 h-5 rounded object-contain border border-slate-200 bg-white" />
+                                    )}
+                                    <span className="text-[#172b4d] font-bold">{voto.candidato?.partido?.nombre || 'Independiente'}</span>
+                                  </div>
+                                ) : voto.tipo === 'BLANCO' ? (
+                                  <span className="inline-block px-2 py-0.5 bg-slate-200 text-slate-700 rounded text-[11px] font-bold uppercase tracking-wide border border-slate-300">Votos en Blanco</span>
+                                ) : voto.tipo === 'NULO' ? (
+                                  <span className="inline-block px-2 py-0.5 bg-red-100 text-red-700 rounded text-[11px] font-bold uppercase tracking-wide border border-red-200">Votos Nulos</span>
+                                ) : (
+                                  <span className="inline-block px-2 py-0.5 bg-orange-100 text-orange-700 rounded text-[11px] font-bold uppercase tracking-wide border border-orange-200">Votos Impugnados</span>
+                                )}
+                              </td>
+                              <td className="p-1.5 px-4 text-right w-[120px]">
+                                {isEditing ? (
+                                  <input 
+                                    type="number" 
+                                    min="0"
+                                    value={editedVotos[voto.id] ?? voto.cantidad}
+                                    onChange={(e) => setEditedVotos(prev => ({ ...prev, [voto.id]: parseInt(e.target.value) || 0 }))}
+                                    className="w-16 text-center text-[14px] font-bold border border-blue-400 rounded px-1.5 py-0.5 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-blue-50/50"
+                                  />
+                                ) : (
+                                  <span className="inline-block min-w-[36px] text-center font-bold bg-slate-100 px-2 py-0.5 rounded text-slate-800 border border-slate-200 shadow-sm text-[14px]">
+                                    {voto.cantidad}
+                                  </span>
+                                )}
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
                 </div>
               );
             })}

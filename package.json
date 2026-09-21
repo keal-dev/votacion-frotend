@@ -15,10 +15,12 @@
     "@mui/icons-material": "^9.3.1",
     "@mui/material": "^9.3.1",
     "axios": "^1.19.0",
+    "browser-image-compression": "^2.0.2",
     "js-cookie": "^3.0.8",
     "next": "16.3.2",
     "react": "19.2.8",
     "react-dom": "19.2.8",
+    "react-hot-toast": "^2.6.1",
     "recharts": "^3.10.1",
     "xlsx": "^0.18.5",
     "zustand": "^5.0.15"

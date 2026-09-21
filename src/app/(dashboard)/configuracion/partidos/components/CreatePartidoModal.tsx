@@ -46,17 +46,30 @@ export default function CreatePartidoModal({ isOpen, activeElection, onClose, on
         return;
     }
 
+    if (!logoFile) {
+      setError('Debes subir el logo oficial del partido.');
+      return;
+    }
+
     setLoading(true);
     try {
-      const formData = new FormData();
-      formData.append('nombre', nombre);
-      formData.append('siglas', siglas);
-      formData.append('electionId', activeElection.id);
+      // Agregar un pequeño retraso artificial para que se pueda apreciar la animación de carga
+      await new Promise(resolve => setTimeout(resolve, 1000));
+
+      // Fase 1: Subir imagen
+      let uploadedLogoUrl = '';
       if (logoFile) {
-        formData.append('logo', logoFile);
+        const uploadResult = await partidoService.uploadLogo(logoFile);
+        uploadedLogoUrl = uploadResult.logoUrl;
       }
 
-      await partidoService.create(formData);
+      // Fase 2: Crear partido con los datos
+      await partidoService.create({
+        nombre,
+        siglas,
+        electionId: activeElection.id,
+        logoUrl: uploadedLogoUrl || undefined
+      });
       
       // Limpiar y cerrar
       setNombre('');
@@ -87,13 +100,23 @@ export default function CreatePartidoModal({ isOpen, activeElection, onClose, on
         {/* Header */}
         <div className="flex items-center justify-between border-b border-line px-5 py-4 bg-[#f8fafc]">
           <h2 className="text-base font-extrabold text-[#172b4d]">Inscribir Organización Política</h2>
-          <button onClick={handleClose} className="text-[#52637d] hover:bg-slate-200 rounded-full p-1 transition-colors">
+          <button onClick={handleClose} disabled={loading} className="text-[#52637d] hover:bg-slate-200 rounded-full p-1 transition-colors disabled:opacity-50">
             <CloseIcon style={{ fontSize: 20 }} />
           </button>
         </div>
 
         {/* Form */}
-        <form onSubmit={handleSubmit} className="p-5">
+        <form onSubmit={handleSubmit} className="p-5 relative">
+          {loading && (
+            <div className="absolute inset-0 z-10 flex flex-col items-center justify-center bg-white/70 backdrop-blur-[1px] rounded-b-xl">
+              <svg className="h-10 w-10 animate-spin text-blue-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+              </svg>
+              <span className="mt-3 text-sm font-bold text-blue-600">Inscribiendo partido...</span>
+            </div>
+          )}
+
           {error && (
             <div className="mb-4 rounded bg-red-50 p-3 text-xs font-medium text-red-600 border border-red-200">
               {error}
@@ -102,10 +125,10 @@ export default function CreatePartidoModal({ isOpen, activeElection, onClose, on
 
           {/* Upload Logo Area */}
           <div className="mb-5 flex flex-col items-center justify-center">
-            <label className="mb-2 block text-[12px] font-bold text-[#071f43] self-start">Logo del Partido (Opcional)</label>
+            <label className="mb-2 block text-[12px] font-bold text-[#071f43] self-start">Logo del Partido *</label>
             <div 
-              onClick={() => fileInputRef.current?.click()}
-              className="relative flex h-28 w-28 cursor-pointer items-center justify-center rounded-full border-2 border-dashed border-[#bdc8d5] bg-slate-50 overflow-hidden hover:border-[#138b49] hover:bg-green-50 transition-colors group"
+              onClick={() => !loading && fileInputRef.current?.click()}
+              className={`relative flex h-28 w-28 ${loading ? 'cursor-not-allowed opacity-70' : 'cursor-pointer hover:border-[#138b49] hover:bg-green-50'} items-center justify-center rounded-full border-2 border-dashed border-[#bdc8d5] bg-slate-50 overflow-hidden transition-colors group`}
             >
               {previewUrl ? (
                 <img src={previewUrl} alt="Preview" className="h-full w-full object-cover" />
@@ -115,7 +138,7 @@ export default function CreatePartidoModal({ isOpen, activeElection, onClose, on
                   <span className="text-[10px] font-bold mt-1">Subir Logo</span>
                 </div>
               )}
-              {previewUrl && (
+              {previewUrl && !loading && (
                 <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
                   <CloudUploadOutlinedIcon className="text-white" />
                 </div>
@@ -127,6 +150,7 @@ export default function CreatePartidoModal({ isOpen, activeElection, onClose, on
               className="hidden" 
               accept="image/*"
               onChange={handleImageChange}
+              disabled={loading}
             />
           </div>
 
@@ -139,6 +163,7 @@ export default function CreatePartidoModal({ isOpen, activeElection, onClose, on
               placeholder="Ej. Partido Morado"
               className="w-full p-2.5 text-[13px] border border-[#bdc8d5] rounded-md outline-none focus:border-[#138b49] focus:ring-1 focus:ring-[#138b49]/20 transition-all" 
               autoFocus
+              disabled={loading}
             />
           </div>
 
@@ -150,24 +175,36 @@ export default function CreatePartidoModal({ isOpen, activeElection, onClose, on
               onChange={(e) => setSiglas(e.target.value)}
               placeholder="Ej. PM"
               className="w-full p-2.5 text-[13px] border border-[#bdc8d5] rounded-md outline-none focus:border-[#138b49] focus:ring-1 focus:ring-[#138b49]/20 transition-all" 
+              disabled={loading}
             />
           </div>
 
           {/* Actions */}
-          <div className="flex justify-end gap-3">
+          <div className="flex justify-end gap-3 relative z-20">
             <button 
               type="button" 
               onClick={handleClose}
-              className="px-4 py-2 rounded-md text-[13px] font-bold text-[#52637d] border border-line hover:bg-slate-50 transition-colors"
+              disabled={loading}
+              className="px-4 py-2 rounded-md text-[13px] font-bold text-[#52637d] border border-line hover:bg-slate-50 transition-colors disabled:opacity-50"
             >
               Cancelar
             </button>
             <button 
               type="submit" 
               disabled={loading}
-              className="px-4 py-2 rounded-md text-[13px] font-bold text-white bg-blue-600 hover:bg-blue-700 transition-colors disabled:opacity-70 flex items-center justify-center min-w-[120px]"
+              className="px-4 py-2 cursor-pointer rounded-md text-[13px] font-bold text-white bg-blue-600 hover:bg-blue-700 transition-colors disabled:opacity-90 flex items-center justify-center min-w-[150px] gap-2 shadow-sm"
             >
-              {loading ? 'Inscribiendo...' : 'Inscribir Partido'}
+              {loading ? (
+                <>
+                  <svg className="h-4 w-4 animate-spin text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                  Inscribiendo...
+                </>
+              ) : (
+                'Inscribir Partido'
+              )}
             </button>
           </div>
         </form>

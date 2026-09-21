@@ -7,6 +7,7 @@ export interface Local {
   region: string;
   provincia: string;
   distrito: string;
+  centro_poblado?: string;
 }
 
 export interface Mesa {

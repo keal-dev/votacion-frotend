@@ -23,7 +23,7 @@ interface SidebarProps {
 
 export default function Sidebar({ isOpen, onClose }: SidebarProps) {
   const pathname = usePathname();
-  const { user } = useAuthStore();
+  const { user, setUser } = useAuthStore();
   const [mounted, setMounted] = useState(false);
   const settings = useSettingsStore((state) => state.settings);
 
@@ -98,7 +98,7 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
           </button>
         </div>
 
-        <div className="flex items-center gap-2.5  mb-5 px-2 py-2 rounded-xl">
+        <div className="flex items-center gap-2.5 mb-5 px-2 py-2 rounded-xl">
           <div className="w-8 h-8 rounded-full bg-green text-white grid place-items-center text-[13px] font-bold shrink-0 uppercase">
             {mounted && user ? `${user.name.charAt(0)}${user.lastname.charAt(0)}` : 'US'}
           </div>
@@ -134,7 +134,7 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
             );
           })}
 
-          <div className="mt-auto pt-4 border-t border-white/10">
+          <div className="mt-auto pt-4 border-t border-white/10 flex flex-col gap-1">
 
             <button
               onClick={() => authService.logout()}

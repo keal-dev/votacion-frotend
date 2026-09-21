@@ -26,6 +26,12 @@ const EditIcon = ({ className }: { className?: string }) => (
   </svg>
 );
 
+const KeyIcon = ({ className }: { className?: string }) => (
+  <svg className={className} xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+    <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 5.25a3 3 0 013 3m3 0a6 6 0 01-7.029 5.912c-.563-.097-1.159.026-1.563.43L10.5 17.25H8.25v2.25H6v2.25H2.25v-2.818c0-.597.237-1.17.659-1.591l6.499-6.499c.404-.404.527-1 .43-1.563A6 6 0 1121.75 8.25z" />
+  </svg>
+);
+
 const TrashIcon = ({ className }: { className?: string }) => (
   <svg className={className} xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
     <path strokeLinecap="round" strokeLinejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" />
@@ -53,14 +59,17 @@ const BriefcaseIcon = ({ className }: { className?: string }) => (
 interface ElectionOption {
   id: string;
   nombre: string;
+  activa: boolean;
 }
 
 export default function PersonerosPage() {
   const [personeros, setPersoneros] = useState<User[]>([]);
-  const [elections, setElections] = useState<ElectionOption[]>([]);
+  const [activeElection, setActiveElection] = useState<ElectionOption | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editing, setEditing] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Modales de eliminación
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
@@ -82,7 +91,8 @@ export default function PersonerosPage() {
   const loadElections = async () => {
     try {
       const resp = await axiosInstance.get<ElectionOption[]>('/elections');
-      setElections(resp.data);
+      const active = resp.data.find(e => e.activa);
+      if (active) setActiveElection(active);
     } catch (e) {
       console.error('Error fetching elections', e);
     }
@@ -95,11 +105,13 @@ export default function PersonerosPage() {
 
   const openCreate = () => {
     setEditing(null);
+    setError(null);
     setIsModalOpen(true);
   };
 
   const openEdit = (personero: User) => {
     setEditing(personero);
+    setError(null);
     setIsModalOpen(true);
   };
 
@@ -110,9 +122,20 @@ export default function PersonerosPage() {
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    setError(null);
     const form = e.currentTarget as HTMLFormElement;
     const formData = new FormData(form);
+
+    // Si la contraseña está vacía, no la enviamos para no sobrescribirla ni fallar la validación
+    if (!formData.get('password')) {
+      formData.delete('password');
+    }
+
+    setIsSubmitting(true);
     try {
+      // Retraso artificial mínimo para apreciar la animación
+      await new Promise(resolve => setTimeout(resolve, 1000));
+
       if (editing) {
         await userService.update(editing.id, formData);
       } else {
@@ -120,8 +143,12 @@ export default function PersonerosPage() {
       }
       await loadPersoneros();
       closeModal();
-    } catch (err) {
+    } catch (err: any) {
       console.error('Error saving personero', err);
+      const errorMessage = err.response?.data?.message || 'Error al guardar el usuario.';
+      setError(Array.isArray(errorMessage) ? errorMessage.join(', ') : errorMessage);
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -162,7 +189,7 @@ export default function PersonerosPage() {
   return (
     <div className="flex h-full flex-col">
       {/* Encabezado (Estilo Candidatos) */}
-      <div className="flex items-center justify-between mb-5">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-5 gap-4">
         <div>
           <h1 className="text-[24px] md:text-[28px] font-extrabold text-[#172b4d] tracking-tight">
             Directorio de Usuarios
@@ -176,13 +203,22 @@ export default function PersonerosPage() {
           </div>
         </div>
 
-        <button
-          onClick={openCreate}
-          className="flex items-center justify-center gap-2 rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-bold text-white shadow-sm transition hover:bg-blue-700 active:scale-95"
-        >
-          <PlusIcon className="w-5 h-5" />
-          Nuevo Usuario
-        </button>
+        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 w-full sm:w-auto">
+          {activeElection && (
+            <div className="flex items-center gap-2 rounded-full bg-green-50 px-4 py-2 border border-green-200 shadow-sm w-full sm:w-auto justify-center">
+              <div className="w-2 h-2 rounded-full bg-[#0b9349] animate-pulse"></div>
+              <span className="text-[13px] font-bold text-[#0b9349]">{activeElection.nombre}</span>
+            </div>
+          )}
+
+          <button
+            onClick={openCreate}
+            className="flex w-full cursor-pointer sm:w-auto h-fit items-center justify-center gap-2 rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-bold text-white shadow-sm transition hover:bg-blue-700 active:scale-95"
+          >
+            <PlusIcon className="w-5 h-5" />
+            Nuevo Usuario
+          </button>
+        </div>
       </div>
 
       <DeleteConfirmModal
@@ -282,6 +318,13 @@ export default function PersonerosPage() {
                     <td className="px-5 py-3 text-right">
                       <div className="flex justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
                         <button
+                          onClick={() => alert(`La contraseña de ${p.name} es:\n\n${p.password || p.dni}`)}
+                          className="p-1.5 text-[#52637d] hover:text-amber-500 hover:bg-amber-50 rounded transition-colors"
+                          title="Ver contraseña"
+                        >
+                          <KeyIcon className="w-4 h-4" />
+                        </button>
+                        <button
                           onClick={() => openEdit(p)}
                           className="p-1.5 text-[#52637d] hover:text-[#0b9349] hover:bg-green-50 rounded transition-colors"
                           title="Editar usuario"
@@ -334,7 +377,27 @@ export default function PersonerosPage() {
             </div>
 
             {/* Modal Body */}
-            <form onSubmit={handleSubmit} className="p-6">
+                <form onSubmit={handleSubmit} className="p-6 relative">
+                  {isSubmitting && (
+                    <div className="absolute inset-0 z-10 flex flex-col items-center justify-center bg-white/70 backdrop-blur-[1px]">
+                      <svg className="h-10 w-10 animate-spin text-[#0b9349]" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                      </svg>
+                      <span className="mt-3 text-sm font-bold text-[#0b9349]">Guardando usuario...</span>
+                    </div>
+                  )}
+                  {error && (
+                    <div className="mb-4 flex items-start gap-2 rounded-lg bg-red-50 p-3 text-[13px] font-medium text-red-700 border border-red-200">
+                      <svg className="w-5 h-5 shrink-0 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                      </svg>
+                      <div>
+                        <span className="font-bold block mb-0.5">No se pudo guardar el usuario:</span>
+                        <span>{error}</span>
+                      </div>
+                    </div>
+                  )}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
 
                 <div className="space-y-1">
@@ -369,6 +432,7 @@ export default function PersonerosPage() {
                     pattern="\d{8}"
                     title="El DNI debe tener 8 dígitos numéricos"
                     placeholder="Número de DNI"
+                        onInput={(e) => { e.currentTarget.value = e.currentTarget.value.replace(/\D/g, ''); }}
                     className="w-full px-3 py-2 text-[13px] bg-white border border-[#dfe1e6] rounded-md focus:ring-2 focus:ring-[#0b9349]/20 focus:border-[#0b9349] transition-all outline-none"
                   />
                 </div>
@@ -379,6 +443,8 @@ export default function PersonerosPage() {
                     name="phone"
                     defaultValue={editing?.phone ?? ''}
                     placeholder="Ej. 987654321"
+                        maxLength={9}
+                        onInput={(e) => { e.currentTarget.value = e.currentTarget.value.replace(/\D/g, ''); }}
                     className="w-full px-3 py-2 text-[13px] bg-white border border-[#dfe1e6] rounded-md focus:ring-2 focus:ring-[#0b9349]/20 focus:border-[#0b9349] transition-all outline-none"
                   />
                 </div>
@@ -400,61 +466,50 @@ export default function PersonerosPage() {
                   </select>
                 </div>
 
-                <div className="space-y-1 sm:col-span-2">
-                  <label className="text-[12px] font-bold text-[#52637d] flex items-center gap-1.5">
-                    <MapPinIcon className="w-3.5 h-3.5" />
-                    Asignar a Elección
-                  </label>
-                  <select
-                    name="electionId"
-                    defaultValue={editing?.election?.id ?? ''}
-                    className="w-full px-3 py-2 text-[13px] bg-white border border-[#dfe1e6] rounded-md focus:ring-2 focus:ring-[#0b9349]/20 focus:border-[#0b9349] transition-all outline-none"
-                  >
-                    <option value="">-- No asignar por ahora --</option>
-                    {elections.map(e => (
-                      <option key={e.id} value={e.id}>{e.nombre}</option>
-                    ))}
-                  </select>
-                </div>
-
-                <div className="space-y-1 sm:col-span-2 mt-2">
-                  <label className="text-[12px] font-bold text-[#52637d]">Foto de Perfil</label>
-                  <div className="flex items-center gap-3 p-3 border border-dashed border-[#dfe1e6] rounded-md bg-[#fafbfc]">
-                    {editing?.image ? (
-                      <img src={editing.image} alt="Actual" className="w-10 h-10 rounded-full object-cover border border-[#dfe1e6]" />
-                    ) : (
-                      <div className="w-10 h-10 rounded-full bg-[#f4f5f7] flex items-center justify-center text-[#52637d]">
-                        <UserIconSvg className="w-5 h-5" />
-                      </div>
-                    )}
-                    <div className="flex-1">
-                      <input
-                        type="file"
-                        name="image"
-                        accept="image/*"
-                        className="w-full text-xs text-[#52637d] file:mr-3 file:py-1.5 file:px-3 file:rounded-md file:border-0 file:text-xs file:font-bold file:bg-[#e3fcee] file:text-[#0b9349] hover:file:bg-[#bbf4d5] transition-colors cursor-pointer"
-                      />
-                      <p className="text-[11px] text-[#8993a4] mt-1">Formato: JPG, PNG o WEBP</p>
-                    </div>
+                {editing && (
+                  <div className="space-y-1 sm:col-span-2">
+                    <label className="text-[12px] font-bold text-[#52637d]">Contraseña <span className="text-gray-400 font-normal">(Opcional)</span></label>
+                    <input
+                      name="password"
+                      type="password"
+                      placeholder="Dejar en blanco para mantener la actual"
+                      className="w-full px-3 py-2 text-[13px] bg-white border border-[#dfe1e6] rounded-md focus:ring-2 focus:ring-[#0b9349]/20 focus:border-[#0b9349] transition-all outline-none"
+                    />
                   </div>
-                </div>
+                )}
 
+                    {/* Hidden Election ID */}
+                    {activeElection && (
+                      <input type="hidden" name="electionId" value={activeElection.id} />
+                    )}
               </div>
 
               {/* Modal Footer */}
-              <div className="mt-6 flex justify-end gap-2 pt-4 border-t border-line">
+                  <div className="mt-6 flex justify-end gap-2 pt-4 border-t border-line relative z-20">
                 <button
                   type="button"
                   onClick={closeModal}
-                  className="px-4 py-2 text-xs font-bold text-[#172b4d] bg-[#f4f5f7] rounded-md hover:bg-[#dfe1e6] transition-colors"
+                      disabled={isSubmitting}
+                      className="px-4 py-2 text-xs font-bold text-[#172b4d] bg-[#f4f5f7] rounded-md hover:bg-[#dfe1e6] transition-colors disabled:opacity-50"
                 >
                   Cancelar
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2 text-xs font-bold text-white bg-[#0b9349] rounded-md hover:bg-[#087d3e] transition-colors"
+                      disabled={isSubmitting}
+                      className="px-4 py-2 text-xs cursor-pointer font-bold text-white bg-[#0b9349] rounded-md hover:bg-[#087d3e] transition-colors disabled:opacity-90 flex items-center justify-center min-w-[140px] gap-2"
                 >
-                  {editing ? 'Guardar Cambios' : 'Crear Registro'}
+                      {isSubmitting ? (
+                        <>
+                          <svg className="h-4 w-4 animate-spin text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                          </svg>
+                          Guardando...
+                        </>
+                      ) : (
+                        editing ? 'Guardar Cambios' : 'Crear Registro'
+                      )}
                 </button>
               </div>
             </form>

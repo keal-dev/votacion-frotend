@@ -9,6 +9,8 @@ import { Mesa } from "@/types/mesa.types";
 import { Candidato, CargoCandidato } from "@/types/candidato.types";
 import { useVotosStore } from "@/store/votosStore";
 import ConfirmModal from "@/components/modals/ConfirmModal";
+import CloudUploadIcon from '@mui/icons-material/CloudUpload';
+import imageCompression from 'browser-image-compression';
 
 // Componente para inputs conectado a Zustand, extraído para evitar re-renders de toda la página
 const NumberInput = ({ mesaId, inputId }: { mesaId: string, inputId: string }) => {
@@ -60,7 +62,9 @@ const ActaUploader = ({ onFilesChange }: { onFilesChange: (files: File[]) => voi
   const [files, setFiles] = useState<File[]>([]);
   const [previews, setPreviews] = useState<string[]>([]);
   const [isDragging, setIsDragging] = useState(false);
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [isCompressing, setIsCompressing] = useState(false);
+  const cameraInputRef = useRef<HTMLInputElement>(null);
+  const galleryInputRef = useRef<HTMLInputElement>(null);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files.length > 0) {
@@ -68,14 +72,25 @@ const ActaUploader = ({ onFilesChange }: { onFilesChange: (files: File[]) => voi
     }
   };
 
-  const handleFiles = (newFiles: File[]) => {
-    const validFiles = newFiles.filter(file => {
-      if (file.size > 5 * 1024 * 1024) {
-        alert(`El archivo ${file.name} excede los 5 MB.`);
-        return false;
+  const handleFiles = async (newFiles: File[]) => {
+    setIsCompressing(true);
+    const validFiles: File[] = [];
+
+    for (const file of newFiles) {
+      try {
+        const options = {
+          maxSizeMB: 0.5,
+          maxWidthOrHeight: 1200,
+          useWebWorker: true
+        };
+        const compressedFile = await imageCompression(file, options);
+        const newFile = new File([compressedFile], file.name, { type: compressedFile.type });
+        validFiles.push(newFile);
+      } catch (error) {
+        console.error("Error compressing", error);
+        validFiles.push(file); // fallback
       }
-      return true;
-    });
+    }
 
     const updatedFiles = [...files, ...validFiles];
     setFiles(updatedFiles);
@@ -84,6 +99,7 @@ const ActaUploader = ({ onFilesChange }: { onFilesChange: (files: File[]) => voi
     setPreviews([...previews, ...newPreviews]);
     
     onFilesChange(updatedFiles);
+    setIsCompressing(false);
   };
 
   const removeFile = (index: number) => {
@@ -97,7 +113,8 @@ const ActaUploader = ({ onFilesChange }: { onFilesChange: (files: File[]) => voi
     setPreviews(newPreviews);
     
     onFilesChange(newFiles);
-    if (fileInputRef.current) fileInputRef.current.value = "";
+    if (cameraInputRef.current) cameraInputRef.current.value = "";
+    if (galleryInputRef.current) galleryInputRef.current.value = "";
   };
 
   const handleDragOver = (e: React.DragEvent) => {
@@ -152,37 +169,73 @@ const ActaUploader = ({ onFilesChange }: { onFilesChange: (files: File[]) => voi
       )}
 
       <div 
-        className={`border-2 border-dashed rounded-[10px] p-[20px] text-center transition-colors cursor-pointer flex flex-col items-center justify-center flex-1 min-h-[150px] ${isDragging ? "border-green bg-[#f3faf5]" : "border-[#cfd6dd] text-[#667085] hover:bg-[#fafbfc]"}`}
-        onClick={() => fileInputRef.current?.click()}
+        className={`border-2 border-dashed rounded-2xl p-[24px] text-center transition-all duration-300 flex flex-col items-center justify-center flex-1 min-h-[220px] relative overflow-hidden ${isDragging ? "border-green bg-[#f3faf5] shadow-inner" : "border-[#cfd6dd] bg-[#f8fafc] hover:border-[#94a3b8]"}`}
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}
         onDrop={handleDrop}
       >
-        <span className="text-[24px] mb-[8px]">{previews.length > 0 ? "➕" : "📸"}</span>
-        <strong className="block text-[#344054] mb-[7px]">
-          {previews.length > 0 ? "Agrega otra foto o selecciona desde tu dispositivo" : "Arrastra las fotos aquí o selecciona archivos desde tu dispositivo"}
+        <div className="bg-white p-3 rounded-2xl shadow-sm mb-3 border border-[#f1f5f9]">
+          <span className="text-[28px]">{previews.length > 0 ? "📸" : "📄"}</span>
+        </div>
+
+        <strong className="block text-[#1e293b] text-[16px] mb-[6px] font-bold">
+          {previews.length > 0 ? "Agrega otra foto" : "Sube la foto del acta"}
         </strong>
-        <button 
-          type="button" 
-          className="border border-line rounded-lg px-[15px] py-[10px] font-bold cursor-pointer bg-white text-[#344054] mt-[12px] hover:bg-gray-50 shadow-sm"
-          onClick={(e) => {
-            e.stopPropagation();
-            fileInputRef.current?.click();
-          }}
-        >
-          {previews.length > 0 ? "Seleccionar más" : "Seleccionar archivos"}
-        </button>
-        <small className="block mt-[12px] text-[12px]">
-          JPG, PNG · Máx. 5 MB c/u
-        </small>
+        <span className="text-[#64748b] text-[13px] mb-5 px-4">
+          {isDragging ? "¡Suelta la imagen aquí!" : "Soporta JPG, PNG. Se comprimen de forma automática para ahorrar datos."}
+        </span>
+
+        <div className="flex flex-col sm:flex-row gap-3 w-full max-w-[340px] justify-center mt-2 relative z-10">
+          <button
+            type="button"
+            disabled={isCompressing}
+            className="flex-1 flex items-center justify-center gap-2 border border-transparent rounded-xl py-[12px] px-[16px] font-bold cursor-pointer bg-gradient-to-r from-green to-[#128a44] text-white hover:shadow-[0_4px_12px_rgba(21,128,61,0.3)] hover:-translate-y-[1px] active:translate-y-0 transition-all duration-200 disabled:opacity-70 disabled:cursor-not-allowed disabled:transform-none"
+            onClick={(e) => {
+              e.stopPropagation();
+              cameraInputRef.current?.click();
+            }}
+          >
+            <span className="text-[18px]">📷</span>
+            <span>Cámara</span>
+          </button>
+
+          <button
+            type="button" 
+            disabled={isCompressing}
+            className="flex-1 flex items-center justify-center gap-2 border border-[#cbd5e1] rounded-xl py-[12px] px-[16px] font-bold cursor-pointer bg-white text-[#334155] hover:bg-[#f8fafc] hover:border-[#94a3b8] hover:shadow-sm transition-all duration-200 disabled:opacity-70 disabled:cursor-not-allowed disabled:transform-none"
+            onClick={(e) => {
+              e.stopPropagation();
+              galleryInputRef.current?.click();
+            }}
+          >
+            <span className="text-[18px]">📁</span>
+            <span>Archivos</span>
+          </button>
+        </div>
+
+        {isCompressing && (
+          <div className="absolute inset-0 bg-white/80 backdrop-blur-sm flex flex-col items-center justify-center z-20 animate-in fade-in duration-200">
+            <div className="w-10 h-10 border-4 border-[#e2e8f0] border-t-green rounded-full animate-spin mb-3"></div>
+            <span className="text-green font-extrabold text-[15px]">Comprimiendo imagen...</span>
+          </div>
+        )}
       </div>
       
       <input 
         type="file" 
-        accept="image/jpeg, image/png"
+        accept="image/jpeg, image/png, image/webp"
+        capture="environment"
+        multiple={false}
+        className="hidden"
+        ref={cameraInputRef}
+        onChange={handleFileChange}
+      />
+      <input
+        type="file"
+        accept="image/jpeg, image/png, image/webp"
         multiple
         className="hidden" 
-        ref={fileInputRef} 
+        ref={galleryInputRef} 
         onChange={handleFileChange} 
       />
     </div>
@@ -227,6 +280,53 @@ const CustomAlertModal = ({
           Entendido
         </button>
       </div>
+    </div>
+  );
+};
+
+const ConnectedTabs = ({ mesaId, regionales, provinciales, distritales, activeTab, setActiveTab }: any) => {
+  const votos = useVotosStore((state) => state.votos);
+
+  const calcTotal = (candidatos: Candidato[], nivel: string) => {
+    let sum = 0;
+    candidatos.forEach(c => sum += parseInt(votos[`${mesaId}_${c.id}`]) || 0);
+    sum += parseInt(votos[`${mesaId}_blanco_${nivel}`]) || 0;
+    sum += parseInt(votos[`${mesaId}_nulo_${nivel}`]) || 0;
+    sum += parseInt(votos[`${mesaId}_impugnado_${nivel}`]) || 0;
+    return sum;
+  };
+
+  const totReg = calcTotal(regionales, 'regional');
+  const totProv = calcTotal(provinciales, 'provincial');
+  const totDist = calcTotal(distritales, 'distrital');
+  const maxTotal = Math.max(totReg, totProv, totDist);
+
+  const getIcon = (tot: number) => {
+    if (maxTotal === 0) return null;
+    if (tot === maxTotal) return <span className="ml-[6px] text-green-600 font-bold">✓</span>;
+    return <span className="ml-[6px] text-red-500 text-[12px]">⚠️</span>;
+  };
+
+  return (
+    <div className="inline-flex bg-[#f8fafc] p-1.5 rounded-xl mb-6 relative z-10 border border-[#e2e8f0] overflow-x-auto hide-scrollbar shadow-inner w-full md:w-auto">
+      <button
+        onClick={() => setActiveTab("regional")}
+        className={`flex-1 md:flex-none flex items-center justify-center py-[10px] px-[24px] font-semibold text-[14px] rounded-lg transition-all duration-300 ease-out whitespace-nowrap ${activeTab === "regional" ? "bg-white text-green shadow-[0_2px_8px_-2px_rgba(0,0,0,0.12)] ring-1 ring-black/[0.04] scale-100" : "text-[#64748b] hover:text-[#334155] hover:bg-[#f1f5f9] scale-[0.98]"}`}
+      >
+        Regional {getIcon(totReg)}
+      </button>
+      <button
+        onClick={() => setActiveTab("provincial")}
+        className={`flex-1 md:flex-none flex items-center justify-center py-[10px] px-[24px] font-semibold text-[14px] rounded-lg transition-all duration-300 ease-out whitespace-nowrap ${activeTab === "provincial" ? "bg-white text-green shadow-[0_2px_8px_-2px_rgba(0,0,0,0.12)] ring-1 ring-black/[0.04] scale-100" : "text-[#64748b] hover:text-[#334155] hover:bg-[#f1f5f9] scale-[0.98]"}`}
+      >
+        Provincial {getIcon(totProv)}
+      </button>
+      <button
+        onClick={() => setActiveTab("distrital")}
+        className={`flex-1 md:flex-none flex items-center justify-center py-[10px] px-[24px] font-semibold text-[14px] rounded-lg transition-all duration-300 ease-out whitespace-nowrap ${activeTab === "distrital" ? "bg-white text-green shadow-[0_2px_8px_-2px_rgba(0,0,0,0.12)] ring-1 ring-black/[0.04] scale-100" : "text-[#64748b] hover:text-[#334155] hover:bg-[#f1f5f9] scale-[0.98]"}`}
+      >
+        Distrital {getIcon(totDist)}
+      </button>
     </div>
   );
 };
@@ -324,21 +424,88 @@ export default function VotosPage() {
       const res = await actaService.enviarActa(mesaId, actaFiles, observaciones, votosDeMesa);
       setIsSubmitting(false); // Detener el loader
 
-      if (res.fotosFallidas) {
-        showAlert("¡Acta Guardada!", "Acta guardada, pero las fotos fallaron. Súbelas más tarde.", "warning", () => {
-          router.push("/personero"); // Volver al dashboard
-        });
-      } else {
-        showAlert("¡Guardado!", "Actas y fotos guardadas exitosamente.", "success", () => {
-          router.push("/personero"); // Volver al dashboard
-        });
-      }
+      showAlert("¡Guardado!", "Actas y fotos guardadas exitosamente.", "success", () => {
+        router.push("/personero"); // Volver al dashboard
+      });
     } catch (error: any) {
       console.error("Error al enviar el acta:", error);
       const errorMsg = error.response?.data?.message || "Ocurrió un error al enviar el acta. Por favor, intenta nuevamente.";
       showAlert("Error al Guardar", errorMsg, "error");
       setIsSubmitting(false);
     }
+  };
+
+  const renderBallotList = (candidatosList: Candidato[], nivel: string) => {
+    return (
+      <div className="border-[3px] border-black bg-white rounded-md overflow-hidden flex flex-col shadow-sm">
+        {candidatosList.map((candidato) => (
+          <div key={candidato.id} className="grid grid-cols-[1fr_80px_80px] sm:grid-cols-[1fr_100px_100px] border-b-[2px] border-black items-stretch bg-[#fffdf0] hover:bg-[#fff9d6] transition-colors">
+            <div className="p-3 flex flex-col justify-center border-r-[2px] border-black">
+              <span className="text-black font-black uppercase text-[13px] sm:text-[15px] leading-tight">
+                {candidato.partido?.nombre || "INDEPENDIENTE"}
+              </span>
+              <span className="text-black/60 text-[10px] sm:text-[11px] uppercase font-bold mt-1">
+                {candidato.nombre} {candidato.apellidos}
+              </span>
+            </div>
+
+            <div className="bg-white p-2 flex items-center justify-center border-r-[2px] border-black">
+              {candidato.partido?.logo_url ? (
+                <img src={candidato.partido.logo_url} alt="logo" className="w-full h-full object-contain max-h-[50px]" />
+              ) : (
+                <span className="text-[#98a2b3] text-2xl">🖼️</span>
+              )}
+            </div>
+
+            <div className="bg-white p-2 flex items-center justify-center">
+              <NumberInput mesaId={mesaId} inputId={candidato.id} />
+            </div>
+          </div>
+        ))}
+
+        <div className="grid grid-cols-[1fr_80px_80px] sm:grid-cols-[1fr_100px_100px] border-b-[2px] border-black items-stretch bg-gray-50 hover:bg-gray-100 transition-colors">
+          <div className="p-3 flex items-center border-r-[2px] border-black">
+            <span className="text-black font-black uppercase text-[13px] sm:text-[15px]">VOTOS EN BLANCO</span>
+          </div>
+          <div className="bg-white border-r-[2px] border-black"></div>
+          <div className="bg-white p-2 flex items-center justify-center">
+            <NumberInput mesaId={mesaId} inputId={`blanco_${nivel}`} />
+          </div>
+        </div>
+
+        <div className="grid grid-cols-[1fr_80px_80px] sm:grid-cols-[1fr_100px_100px] border-b-[2px] border-black items-stretch bg-gray-50 hover:bg-gray-100 transition-colors">
+          <div className="p-3 flex items-center border-r-[2px] border-black">
+            <span className="text-black font-black uppercase text-[13px] sm:text-[15px]">VOTOS NULOS</span>
+          </div>
+          <div className="bg-white border-r-[2px] border-black"></div>
+          <div className="bg-white p-2 flex items-center justify-center">
+            <NumberInput mesaId={mesaId} inputId={`nulo_${nivel}`} />
+          </div>
+        </div>
+
+        <div className="grid grid-cols-[1fr_80px_80px] sm:grid-cols-[1fr_100px_100px] border-b-[2px] border-black items-stretch bg-gray-50 hover:bg-gray-100 transition-colors">
+          <div className="p-3 flex items-center border-r-[2px] border-black">
+            <span className="text-black font-black uppercase text-[13px] sm:text-[15px]">VOTOS IMPUGNADOS</span>
+          </div>
+          <div className="bg-white border-r-[2px] border-black"></div>
+          <div className="bg-white p-2 flex items-center justify-center">
+            <NumberInput mesaId={mesaId} inputId={`impugnado_${nivel}`} />
+          </div>
+        </div>
+
+        <div className="grid grid-cols-[1fr_80px_80px] sm:grid-cols-[1fr_100px_100px] items-stretch bg-[#172b4d] text-white">
+          <div className="p-3 flex items-center border-r-[2px] border-black">
+            <span className="font-black uppercase text-[13px] sm:text-[15px]">TOTAL DE VOTOS</span>
+          </div>
+          <div className="border-r-[2px] border-black bg-[#172b4d]"></div>
+          <div className="p-2 flex items-center justify-center bg-[#172b4d]">
+            <div className="w-[70px] text-center text-[16px] font-bold text-white">
+              <TotalVotos mesaId={mesaId} candidatos={candidatosList} nivel={nivel} electores={mesa.cantidad_electores} />
+            </div>
+          </div>
+        </div>
+      </div>
+    );
   };
 
   return (
@@ -367,81 +534,17 @@ export default function VotosPage() {
       <div className="rounded-xl">
 
         {/* TAB NAVIGATION */}
-        <div className="inline-flex bg-[#f8fafc] p-1.5 rounded-xl mb-6 relative z-10 border border-[#e2e8f0] overflow-x-auto hide-scrollbar shadow-inner w-full md:w-auto">
-          <button
-            onClick={() => setActiveTab("regional")}
-            className={`flex-1 md:flex-none py-[10px] px-[24px] font-semibold text-[14px] rounded-lg transition-all duration-300 ease-out whitespace-nowrap ${activeTab === "regional" ? "bg-white text-green shadow-[0_2px_8px_-2px_rgba(0,0,0,0.12)] ring-1 ring-black/[0.04] scale-100" : "text-[#64748b] hover:text-[#334155] hover:bg-[#f1f5f9] scale-[0.98]"}`}
-          >
-            Regional
-          </button>
-          <button
-            onClick={() => setActiveTab("provincial")}
-            className={`flex-1 md:flex-none py-[10px] px-[24px] font-semibold text-[14px] rounded-lg transition-all duration-300 ease-out whitespace-nowrap ${activeTab === "provincial" ? "bg-white text-green shadow-[0_2px_8px_-2px_rgba(0,0,0,0.12)] ring-1 ring-black/[0.04] scale-100" : "text-[#64748b] hover:text-[#334155] hover:bg-[#f1f5f9] scale-[0.98]"}`}
-          >
-            Provincial
-          </button>
-          <button
-            onClick={() => setActiveTab("distrital")}
-            className={`flex-1 md:flex-none py-[10px] px-[24px] font-semibold text-[14px] rounded-lg transition-all duration-300 ease-out whitespace-nowrap ${activeTab === "distrital" ? "bg-white text-green shadow-[0_2px_8px_-2px_rgba(0,0,0,0.12)] ring-1 ring-black/[0.04] scale-100" : "text-[#64748b] hover:text-[#334155] hover:bg-[#f1f5f9] scale-[0.98]"}`}
-          >
-            Distrital
-          </button>
-        </div>
+        <ConnectedTabs mesaId={mesaId} regionales={regionales} provinciales={provinciales} distritales={distritales} activeTab={activeTab} setActiveTab={setActiveTab} />
 
         {/* SINGLE CARD CONTENT */}
-        <div className="bg-white border border-line rounded-xl shadow-[0_8px_30px_-4px_rgba(0,0,0,0.04)] overflow-hidden mb-[24px]">
+        <div className="mb-[24px]">
 
           {activeTab === "distrital" && (
             <div className="animate-in fade-in duration-200">
               {distritales.length === 0 ? (
-                <div className="p-8 text-center text-muted">No hay candidatos para este nivel de elección en esta mesa.</div>
+                <div className="p-8 text-center text-muted bg-white border border-line rounded-xl">No hay candidatos para este nivel de elección en esta mesa.</div>
               ) : (
-                <>
-                  {distritales.map((candidato, index) => (
-                    <div key={candidato.id} className="grid grid-cols-[28px_36px_1fr_78px] items-center p-[10px_12px] border-b border-[#edf0f2] hover:bg-slate-50 transition-colors">
-                      <b>{index + 1}</b>
-                      <div className="w-[30px] h-[30px] bg-[#f2f4f7] rounded-full border border-[#d8dde3] flex items-center justify-center text-[11px] overflow-hidden">
-                        {candidato.partido?.logo_url ? (
-                          <img src={candidato.partido.logo_url} alt="logo" className="w-full h-full object-cover" />
-                        ) : (
-                          <span className="text-[#98a2b3]">🖼️</span>
-                        )}
-                      </div>
-                      <div className="flex flex-col justify-center">
-                        <span className="text-[#344054] font-medium leading-tight">{candidato.partido?.nombre || "Independiente"}</span>
-                        <span className="text-[#667085] text-[11px] leading-tight mt-[2px]">{candidato.nombre} {candidato.apellidos}</span>
-                      </div>
-                      <NumberInput mesaId={mesaId} inputId={candidato.id} />
-                    </div>
-                  ))}
-
-                  <div className="grid grid-cols-[28px_36px_1fr_78px] items-center p-[10px_12px] border-b border-[#edf0f2] bg-[#fff9e9]">
-                    <span></span>
-                    <span></span>
-                    <span>Votos en Blanco</span>
-                    <NumberInput mesaId={mesaId} inputId="blanco_distrital" />
-                  </div>
-                  <div className="grid grid-cols-[28px_36px_1fr_78px] items-center p-[10px_12px] border-b border-[#edf0f2] bg-[#fff0f0]">
-                    <span></span>
-                    <span></span>
-                    <span>Votos Nulos</span>
-                    <NumberInput mesaId={mesaId} inputId="nulo_distrital" />
-                  </div>
-                  <div className="grid grid-cols-[28px_36px_1fr_78px] items-center p-[10px_12px] border-b border-[#edf0f2] bg-[#f8f9fa]">
-                    <span></span>
-                    <span></span>
-                    <span>Votos Impugnados</span>
-                    <NumberInput mesaId={mesaId} inputId="impugnado_distrital" />
-                  </div>
-                  <div className="grid grid-cols-[28px_36px_1fr_78px] items-center p-[10px_12px] font-extrabold bg-[#f3faf5] text-green-2">
-                    <span></span>
-                    <span></span>
-                    <span>Total de votos Distrital</span>
-                    <div className="w-[100px] text-center text-[16px] justify-self-center">
-                      <TotalVotos mesaId={mesaId} candidatos={distritales} nivel="distrital" electores={mesa.cantidad_electores} />
-                    </div>
-                  </div>
-                </>
+                  renderBallotList(distritales, "distrital")
               )}
             </div>
           )}
@@ -449,54 +552,9 @@ export default function VotosPage() {
           {activeTab === "provincial" && (
             <div className="animate-in fade-in duration-200">
               {provinciales.length === 0 ? (
-                <div className="p-8 text-center text-muted">No hay candidatos para este nivel de elección en esta mesa.</div>
+                <div className="p-8 text-center text-muted bg-white border border-line rounded-xl">No hay candidatos para este nivel de elección en esta mesa.</div>
               ) : (
-                <>
-                  {provinciales.map((candidato, index) => (
-                    <div key={candidato.id} className="grid grid-cols-[28px_36px_1fr_78px] items-center p-[10px_12px] border-b border-[#edf0f2] hover:bg-slate-50 transition-colors">
-                      <b>{index + 1}</b>
-                      <div className="w-[30px] h-[30px] bg-[#f2f4f7] rounded-full border border-[#d8dde3] flex items-center justify-center text-[11px] overflow-hidden">
-                        {candidato.partido?.logo_url ? (
-                          <img src={candidato.partido.logo_url} alt="logo" className="w-full h-full object-cover" />
-                        ) : (
-                          <span className="text-[#98a2b3]">🖼️</span>
-                        )}
-                      </div>
-                      <div className="flex flex-col justify-center">
-                        <span className="text-[#344054] font-medium leading-tight">{candidato.partido?.nombre || "Independiente"}</span>
-                        <span className="text-[#667085] text-[11px] leading-tight mt-[2px]">{candidato.nombre} {candidato.apellidos}</span>
-                      </div>
-                      <NumberInput mesaId={mesaId} inputId={candidato.id} />
-                    </div>
-                  ))}
-
-                  <div className="grid grid-cols-[28px_36px_1fr_78px] items-center p-[10px_12px] border-b border-[#edf0f2] bg-[#fff9e9]">
-                    <span></span>
-                    <span></span>
-                    <span>Votos en Blanco</span>
-                    <NumberInput mesaId={mesaId} inputId="blanco_provincial" />
-                  </div>
-                  <div className="grid grid-cols-[28px_36px_1fr_78px] items-center p-[10px_12px] border-b border-[#edf0f2] bg-[#fff0f0]">
-                    <span></span>
-                    <span></span>
-                    <span>Votos Nulos</span>
-                    <NumberInput mesaId={mesaId} inputId="nulo_provincial" />
-                  </div>
-                  <div className="grid grid-cols-[28px_36px_1fr_78px] items-center p-[10px_12px] border-b border-[#edf0f2] bg-[#f8f9fa]">
-                    <span></span>
-                    <span></span>
-                    <span>Votos Impugnados</span>
-                    <NumberInput mesaId={mesaId} inputId="impugnado_provincial" />
-                  </div>
-                  <div className="grid grid-cols-[28px_36px_1fr_78px] items-center p-[10px_12px] font-extrabold bg-[#f3faf5] text-green-2">
-                    <span></span>
-                    <span></span>
-                    <span>Total de votos Provincial</span>
-                    <div className="w-[100px] text-center text-[16px] justify-self-center">
-                      <TotalVotos mesaId={mesaId} candidatos={provinciales} nivel="provincial" electores={mesa.cantidad_electores} />
-                    </div>
-                  </div>
-                </>
+                  renderBallotList(provinciales, "provincial")
               )}
             </div>
           )}
@@ -504,54 +562,9 @@ export default function VotosPage() {
           {activeTab === "regional" && (
             <div className="animate-in fade-in duration-200">
               {regionales.length === 0 ? (
-                <div className="p-8 text-center text-muted">No hay candidatos para este nivel de elección en esta mesa.</div>
+                <div className="p-8 text-center text-muted bg-white border border-line rounded-xl">No hay candidatos para este nivel de elección en esta mesa.</div>
               ) : (
-                <>
-                  {regionales.map((candidato, index) => (
-                    <div key={candidato.id} className="grid grid-cols-[28px_36px_1fr_78px] items-center p-[10px_12px] border-b border-[#edf0f2] hover:bg-slate-50 transition-colors">
-                      <b>{index + 1}</b>
-                      <div className="w-[30px] h-[30px] bg-[#f2f4f7] rounded-full border border-[#d8dde3] flex items-center justify-center text-[11px] overflow-hidden">
-                        {candidato.partido?.logo_url ? (
-                          <img src={candidato.partido.logo_url} alt="logo" className="w-full h-full object-cover" />
-                        ) : (
-                          <span className="text-[#98a2b3]">🖼️</span>
-                        )}
-                      </div>
-                      <div className="flex flex-col justify-center">
-                        <span className="text-[#344054] font-medium leading-tight">{candidato.partido?.nombre || "Independiente"}</span>
-                        <span className="text-[#667085] text-[11px] leading-tight mt-[2px]">{candidato.nombre} {candidato.apellidos}</span>
-                      </div>
-                      <NumberInput mesaId={mesaId} inputId={candidato.id} />
-                    </div>
-                  ))}
-
-                  <div className="grid grid-cols-[28px_36px_1fr_78px] items-center p-[10px_12px] border-b border-[#edf0f2] bg-[#fff9e9]">
-                    <span></span>
-                    <span></span>
-                    <span>Votos en Blanco</span>
-                    <NumberInput mesaId={mesaId} inputId="blanco_regional" />
-                  </div>
-                  <div className="grid grid-cols-[28px_36px_1fr_78px] items-center p-[10px_12px] border-b border-[#edf0f2] bg-[#fff0f0]">
-                    <span></span>
-                    <span></span>
-                    <span>Votos Nulos</span>
-                    <NumberInput mesaId={mesaId} inputId="nulo_regional" />
-                  </div>
-                  <div className="grid grid-cols-[28px_36px_1fr_78px] items-center p-[10px_12px] border-b border-[#edf0f2] bg-[#f8f9fa]">
-                    <span></span>
-                    <span></span>
-                    <span>Votos Impugnados</span>
-                    <NumberInput mesaId={mesaId} inputId="impugnado_regional" />
-                  </div>
-                  <div className="grid grid-cols-[28px_36px_1fr_78px] items-center p-[10px_12px] font-extrabold bg-[#f3faf5] text-green-2">
-                    <span></span>
-                    <span></span>
-                    <span>Total de votos Regional</span>
-                    <div className="w-[100px] text-center text-[16px] justify-self-center">
-                      <TotalVotos mesaId={mesaId} candidatos={regionales} nivel="regional" electores={mesa.cantidad_electores} />
-                    </div>
-                  </div>
-                </>
+                  renderBallotList(regionales, "regional")
               )}
             </div>
           )}
@@ -593,7 +606,8 @@ export default function VotosPage() {
             className="border-0 rounded-lg px-[15px] py-[10px] font-bold cursor-pointer bg-green text-white disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
           >
             {isSubmitting && <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>}
-            {isSubmitting ? "Enviando..." : "Guardar y Enviar Acta →"}
+            {!isSubmitting && <CloudUploadIcon sx={{ fontSize: 20 }} />}
+            {isSubmitting ? "Enviando..." : "Enviar Acta"}
           </button>
         </div>
 

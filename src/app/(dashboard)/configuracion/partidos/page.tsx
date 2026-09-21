@@ -4,6 +4,7 @@ import Link from "next/link";
 import AddIcon from '@mui/icons-material/Add';
 import DeleteOutlineOutlinedIcon from '@mui/icons-material/DeleteOutlineOutlined';
 import EditOutlinedIcon from '@mui/icons-material/EditOutlined';
+import InboxOutlinedIcon from '@mui/icons-material/InboxOutlined';
 import { partidoService } from "@/services/partido.service";
 import { electionService } from "@/services/election.service";
 import { Partido } from "@/types/partido.types";
@@ -68,9 +69,10 @@ export default function PartidosPage() {
             await partidoService.remove(partidoToDelete.id);
             setIsDeleteModalOpen(false);
             loadData();
-        } catch (error) {
+        } catch (error: any) {
             console.error("Error al eliminar", error);
-            alert("No se pudo eliminar el partido");
+            const msg = error.response?.data?.message || "No se pudo eliminar el partido";
+            alert("❌ " + msg);
         } finally {
             setIsDeleting(false);
         }
@@ -79,7 +81,7 @@ export default function PartidosPage() {
     return (
         <div className="flex h-full flex-col">
             {/* Header */}
-            <div className="flex items-center justify-between mb-5">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-5 gap-4">
                 <div>
                     <h1 className="text-[24px] md:text-[28px] font-extrabold text-[#172b4d] tracking-tight">Organizaciones Políticas</h1>
                     <div className="mt-1 flex items-center text-[13px] text-[#52637d]">
@@ -89,15 +91,24 @@ export default function PartidosPage() {
                     </div>
                 </div>
 
-                {activeElection && (
-                    <button
-                        onClick={() => setIsCreateModalOpen(true)}
-                        className="flex items-center justify-center gap-2 rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-bold text-white shadow-sm transition hover:bg-blue-700 active:scale-95"
-                    >
-                        <AddIcon fontSize="small" />
-                        Inscribir Partido
-                    </button>
-                )}
+                <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 w-full sm:w-auto">
+                    {activeElection && (
+                        <div className="flex items-center gap-2 rounded-full bg-green-50 px-4 py-2 border border-green-200 shadow-sm w-full sm:w-auto justify-center">
+                            <div className="w-2 h-2 rounded-full bg-[#0b9349] animate-pulse"></div>
+                            <span className="text-[13px] font-bold text-[#0b9349]">{activeElection.nombre}</span>
+                        </div>
+                    )}
+
+                    {activeElection && (
+                        <button
+                            onClick={() => setIsCreateModalOpen(true)}
+                            className="flex w-full sm:w-auto h-fit items-center justify-center gap-2 rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-bold text-white shadow-sm transition hover:bg-blue-700 active:scale-95"
+                        >
+                            <AddIcon fontSize="small" />
+                            Inscribir Partido
+                        </button>
+                    )}
+                </div>
             </div>
 
             {/* Modales */}
@@ -124,7 +135,8 @@ export default function PartidosPage() {
             <DeleteConfirmModal
                 isOpen={isDeleteModalOpen}
                 title="Eliminar Partido"
-                message={`¿Estás seguro de que deseas retirar la inscripción de "${partidoToDelete?.nombre}"?`}
+                message={`¿Estás seguro de que deseas retirar la inscripción de "${partidoToDelete?.nombre}"? 
+⚠️ ADVERTENCIA: Esta acción es irreversible y ELIMINARÁ TAMBIÉN a todos los candidatos inscritos bajo este partido.`}
                 onConfirm={confirmDelete}
                 onCancel={() => setIsDeleteModalOpen(false)}
                 loading={isDeleting}
@@ -149,7 +161,7 @@ export default function PartidosPage() {
             ) : partidos.length === 0 ? (
                 <div className="rounded-2xl border border-dashed border-[#bdc8d5] bg-white p-12 text-center shadow-sm">
                     <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-blue-50">
-                        <AddIcon className="text-blue-600" style={{ fontSize: 32 }} />
+                        <InboxOutlinedIcon className="text-blue-600" style={{ fontSize: 32 }} />
                     </div>
                     <h3 className="mb-2 text-base font-bold text-[#172b4d]">Sin Partidos Inscritos</h3>
                     <p className="text-[13px] text-[#52637d] max-w-md mx-auto">
@@ -157,47 +169,58 @@ export default function PartidosPage() {
                     </p>
                 </div>
             ) : (
-                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-5 p-5">
                     {partidos.map((partido) => (
-                        <div key={partido.id} className="group relative rounded-xl border border-line bg-white p-5 text-center shadow-[0_2px_10px_rgba(0,0,0,0.02)] transition-all hover:-translate-y-1 hover:border-blue-200 hover:shadow-lg">
+                        <div key={partido.id} className="group relative rounded-xl border border-[#e2e8f0] border-l-[4px] border-l-[#138b49] bg-white shadow-sm transition-all hover:-translate-y-1 hover:shadow-[0_8px_20px_rgba(0,0,0,0.06)] hover:border-[#cbd5e1] hover:border-l-[#0b9349] overflow-hidden flex flex-col">
+                            {/* Card Cover/Header */}
+                            <div className="h-12 w-full bg-gradient-to-r from-slate-100 via-slate-50 to-slate-100 border-b border-[#e2e8f0] relative">
+                                <div className="absolute right-1 top-1 flex gap-1 opacity-0 transition-all duration-200 group-hover:opacity-100 z-10">
+                                    <button
+                                        onClick={() => handleEditClick(partido)}
+                                        className="rounded-full bg-white/90 backdrop-blur shadow-sm p-1 text-slate-500 hover:bg-blue-50 hover:text-blue-600 transition-colors border border-transparent hover:border-blue-100"
+                                        title="Editar"
+                                    >
+                                        <EditOutlinedIcon style={{ fontSize: 14 }} />
+                                    </button>
+                                    <button
+                                        onClick={() => handleDeleteClick(partido)}
+                                        className="rounded-full bg-white/90 backdrop-blur shadow-sm p-1 text-slate-500 hover:bg-red-50 hover:text-red-600 transition-colors border border-transparent hover:border-red-100"
+                                        title="Eliminar"
+                                    >
+                                        <DeleteOutlineOutlinedIcon style={{ fontSize: 14 }} />
+                                    </button>
+                                </div>
+                            </div>
                             
-                            <div className="absolute right-2 top-2 flex gap-1 opacity-0 transition-all group-hover:opacity-100">
-                                <button
-                                    onClick={() => handleEditClick(partido)}
-                                    className="rounded-full bg-slate-50 p-1.5 text-slate-400 hover:bg-blue-50 hover:text-blue-600"
-                                    title="Editar"
-                                >
-                                    <EditOutlinedIcon fontSize="small" />
-                                </button>
-                                <button
-                                    onClick={() => handleDeleteClick(partido)}
-                                    className="rounded-full bg-slate-50 p-1.5 text-slate-400 hover:bg-red-50 hover:text-red-600"
-                                    title="Eliminar"
-                                >
-                                    <DeleteOutlineOutlinedIcon fontSize="small" />
-                                </button>
-                            </div>
+                            {/* Card Body */}
+                            <div className="px-3 pb-3 pt-0 flex-1 flex flex-col items-center text-center relative bg-white">
+                                {/* Logo (Overlapping) */}
+                                <div className="mx-auto -mt-6 mb-2 flex h-12 w-12 items-center justify-center rounded-full border-[3px] border-white bg-white overflow-hidden shadow-[0_2px_8px_rgba(0,0,0,0.08)] z-10">
+                                    {partido.logo_url ? (
+                                        <img
+                                            src={partido.logo_url.startsWith('http') ? partido.logo_url : `${BASE_URL}${partido.logo_url}`}
+                                            alt={`Logo ${partido.siglas}`}
+                                            className="h-full w-full object-contain p-0.5"
+                                        />
+                                    ) : (
+                                        <div className="h-full w-full bg-slate-50 flex items-center justify-center">
+                                            <span className="text-sm font-black text-slate-300 select-none">
+                                                {partido.siglas.substring(0, 2)}
+                                            </span>
+                                        </div>
+                                    )}
+                                </div>
 
-                            <div className="mx-auto mb-3 flex h-20 w-20 items-center justify-center rounded-full border border-line bg-slate-50 overflow-hidden shadow-inner p-1">
-                                {partido.logo_url ? (
-                                    <img
-                                        src={partido.logo_url.startsWith('http') ? partido.logo_url : `${BASE_URL}${partido.logo_url}`}
-                                        alt={`Logo ${partido.siglas}`}
-                                        className="h-full w-full object-contain rounded-full"
-                                    />
-                                ) : (
-                                    <span className="text-xl font-black text-slate-300 select-none">
+                                <h3 className="text-[12px] font-extrabold text-[#0f172a] leading-tight mb-1.5 line-clamp-2" title={partido.nombre}>
+                                    {partido.nombre}
+                                </h3>
+                                
+                                <div className="mt-auto w-full">
+                                    <div className="mx-auto inline-flex items-center justify-center rounded bg-[#f8fafc] px-2 py-0.5 text-[10px] font-bold text-[#475569] border border-[#e2e8f0]">
                                         {partido.siglas}
-                                    </span>
-                                )}
+                                    </div>
+                                </div>
                             </div>
-
-                            <h3 className="text-[13px] font-bold text-[#172b4d] leading-tight mb-1 truncate" title={partido.nombre}>
-                                {partido.nombre}
-                            </h3>
-                            <span className="inline-block rounded-full bg-blue-50 px-2 py-0.5 text-[10px] font-bold text-blue-600 border border-blue-100">
-                                {partido.siglas}
-                            </span>
                         </div>
                     ))}
                 </div>
