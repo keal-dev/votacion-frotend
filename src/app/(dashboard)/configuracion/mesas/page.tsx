@@ -90,16 +90,35 @@ export default function MesasPage() {
         }
     };
 
-    const handleFileSelection = (file: File) => {
+    const handleFileSelection = async (file: File) => {
         setUploadError(null);
         setUploadSuccess(null);
         setCsvRowCount(null);
 
-        if (file.type !== "text/csv" && !file.name.endsWith('.csv')) {
-            setUploadError("Por favor, selecciona un archivo CSV válido.");
+        const isExcel = file.name.endsWith('.xlsx') || file.name.endsWith('.xls');
+
+        if (file.type !== "text/csv" && !file.name.endsWith('.csv') && !isExcel) {
+            setUploadError("Por favor, selecciona un archivo CSV o Excel válido.");
             return;
         }
-        setSelectedFile(file);
+
+        let processedFile = file;
+
+        if (isExcel) {
+            try {
+                const data = await file.arrayBuffer();
+                const workbook = XLSX.read(data, { type: 'array' });
+                const firstSheetName = workbook.SheetNames[0];
+                const worksheet = workbook.Sheets[firstSheetName];
+                const csvString = XLSX.utils.sheet_to_csv(worksheet, { FS: ";" });
+                processedFile = new File([csvString], file.name.replace(/\.xlsx?$/, '.csv'), { type: 'text/csv' });
+            } catch (err) {
+                setUploadError("Error al leer el archivo Excel.");
+                return;
+            }
+        }
+
+        setSelectedFile(processedFile);
 
         const reader = new FileReader();
         reader.onload = (e) => {
@@ -112,7 +131,7 @@ export default function MesasPage() {
                 setCsvRowCount(count);
             }
         };
-        reader.readAsText(file);
+        reader.readAsText(processedFile);
     };
 
     const handleUpload = async () => {
@@ -253,7 +272,7 @@ export default function MesasPage() {
                             </h2>
 
                             <p className="text-xs text-[#52637d] mb-4 leading-relaxed">
-                                Descarga la plantilla en Excel, llénala con tus datos, <strong>guárdala como CSV</strong> y súbela aquí. El sistema registrará los locales y mesas automáticamente en la elección: <strong>{activeElection?.nombre}</strong>.
+                                Descarga la plantilla en Excel, llénala con tus datos y súbela aquí. El sistema registrará los locales y mesas automáticamente en la elección: <strong>{activeElection?.nombre}</strong>.
                             </p>
 
                             <button
@@ -279,7 +298,7 @@ export default function MesasPage() {
                                     type="file"
                                     ref={fileInputRef}
                                     className="hidden"
-                                    accept=".csv"
+                                    accept=".csv, application/vnd.openxmlformats-officedocument.spreadsheetml.sheet, application/vnd.ms-excel"
                                     onChange={(e) => {
                                         if (e.target.files && e.target.files.length > 0) {
                                             handleFileSelection(e.target.files[0]);
@@ -309,7 +328,7 @@ export default function MesasPage() {
                                             Haz clic para subir o arrastra un archivo
                                         </p>
                                         <p className="mt-1 text-[11px] text-[#52637d]">
-                                            Solo archivos .CSV
+                                            Archivos .CSV o .XLSX
                                         </p>
                                     </div>
                                 )}

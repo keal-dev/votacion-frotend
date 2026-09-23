@@ -543,7 +543,9 @@ export default function DashboardInicio() {
                                   </div>
                                   <div>
                                     <p className="text-[13px] font-bold text-[#172b4d]">{p.name} {p.lastname}</p>
-                                    <p className="text-[11px] text-[#52637d]">DNI: {p.dni}</p>
+                                    <p className="text-[11px] text-[#52637d]">
+                                      DNI: {p.dni} {p.phone ? `• Tel: ${p.phone}` : ''}
+                                    </p>
                                   </div>
                                 </div>
                               </td>

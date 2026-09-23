@@ -32,5 +32,16 @@ export const userService = {
 
     delete: async (id: string): Promise<void> => {
         await axiosInstance.delete(`/users/${id}`);
+    },
+
+    uploadCsv: async (electionId: string, file: File): Promise<{ message: string }> => {
+        const formData = new FormData();
+        formData.append('file', file);
+        const response = await axiosInstance.post(`/users/${electionId}/bulk-csv`, formData, {
+            headers: {
+                'Content-Type': 'multipart/form-data'
+            }
+        });
+        return response.data;
     }
 };

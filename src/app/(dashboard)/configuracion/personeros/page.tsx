@@ -1,5 +1,7 @@
 'use client';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
+import { toast } from 'react-hot-toast';
+import * as XLSX from 'xlsx';
 import Link from 'next/link';
 import { userService } from '@/services/user.service';
 import { User, Role } from '@/types/user.types';
@@ -10,6 +12,18 @@ import DeleteConfirmModal from "@/components/DeleteConfirmModal";
 const PlusIcon = ({ className }: { className?: string }) => (
   <svg className={className} xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
     <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+  </svg>
+);
+
+const DocumentArrowDownIcon = ({ className }: { className?: string }) => (
+  <svg className={className} xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+    <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m.75 12l3 3m0 0l3-3m-3 3v-6m-1.5-9H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" />
+  </svg>
+);
+
+const DocumentArrowUpIcon = ({ className }: { className?: string }) => (
+  <svg className={className} xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+    <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m5.231 13.481L15 17.25m-2.25-2.25h.008v.008H12.75v-.008zM9.75 15h.008v.008H9.75V15zm0 2.25h.008v.008H9.75v-.008zM12 11.25v6" />
   </svg>
 );
 
@@ -75,6 +89,11 @@ export default function PersonerosPage() {
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [personeroToDelete, setPersoneroToDelete] = useState<User | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
+
+  // Bulk Upload State
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [isUploadingExcel, setIsUploadingExcel] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
 
   const loadPersoneros = async () => {
     try {
@@ -164,12 +183,64 @@ export default function PersonerosPage() {
       await userService.delete(personeroToDelete.id);
       setIsDeleteModalOpen(false);
       await loadPersoneros();
+      toast.success("Usuario eliminado");
     } catch (error) {
       console.error(error);
-      alert("No se pudo eliminar el usuario");
+      toast.error("No se pudo eliminar el usuario");
     } finally {
       setIsDeleting(false);
       setPersoneroToDelete(null);
+    }
+  };
+
+  const downloadTemplate = () => {
+    const ws = XLSX.utils.aoa_to_sheet([
+      ["NOMBRES", "APELLIDOS", "DNI", "TELEFONO", "ROL"],
+      ["Juan Carlos", "Pérez Gómez", "12345678", "987654321", "PERSONERO"],
+      ["María", "López", "87654321", "", "COORDINADOR"]
+    ]);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Usuarios");
+    XLSX.writeFile(wb, "Plantilla_Usuarios.xlsx");
+  };
+
+  const handleExcelUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file || !activeElection) return;
+
+    try {
+      setIsUploadingExcel(true);
+      setUploadProgress(10);
+
+      const buffer = await file.arrayBuffer();
+      const wb = XLSX.read(buffer);
+      const ws = wb.Sheets[wb.SheetNames[0]];
+      setUploadProgress(40);
+
+      // Explicitly use semicolon to match backend expectations
+      const csvString = XLSX.utils.sheet_to_csv(ws, { FS: ";" });
+      const csvBlob = new Blob([csvString], { type: "text/csv;charset=utf-8;" });
+      const csvFile = new File([csvBlob], "usuarios.csv", { type: "text/csv" });
+
+      setUploadProgress(60);
+
+      await userService.uploadCsv(activeElection.id, csvFile);
+
+      setUploadProgress(100);
+      toast.success("Usuarios importados correctamente");
+      await loadPersoneros();
+    } catch (error: any) {
+      console.error("Error al importar", error);
+      const msg = error.response?.data?.message || "Hubo un error al procesar el archivo";
+      if (Array.isArray(msg)) {
+        toast.error(msg[0]);
+      } else {
+        toast.error(msg);
+      }
+    } finally {
+      setIsUploadingExcel(false);
+      setUploadProgress(0);
+      if (fileInputRef.current) fileInputRef.current.value = '';
     }
   };
 
@@ -211,13 +282,41 @@ export default function PersonerosPage() {
             </div>
           )}
 
-          <button
-            onClick={openCreate}
-            className="flex w-full cursor-pointer sm:w-auto h-fit items-center justify-center gap-2 rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-bold text-white shadow-sm transition hover:bg-blue-700 active:scale-95"
-          >
-            <PlusIcon className="w-5 h-5" />
-            Nuevo Usuario
-          </button>
+          {activeElection && (
+            <div className="flex gap-2 w-full sm:w-auto flex-wrap sm:flex-nowrap justify-end">
+              <button
+                onClick={downloadTemplate}
+                className="flex w-full sm:w-auto h-fit items-center justify-center gap-2 rounded-lg bg-white px-4 py-2.5 text-sm font-bold text-[#172b4d] border border-[#dfe1e6] shadow-sm transition hover:bg-[#f4f5f7] active:scale-95"
+              >
+                <DocumentArrowDownIcon className="w-5 h-5" />
+                Plantilla Excel
+              </button>
+
+              <button
+                onClick={() => fileInputRef.current?.click()}
+                className="flex w-full sm:w-auto h-fit items-center justify-center gap-2 rounded-lg bg-white px-4 py-2.5 text-sm font-bold text-[#172b4d] border border-[#dfe1e6] shadow-sm transition hover:bg-[#f4f5f7] active:scale-95"
+              >
+                <DocumentArrowUpIcon className="w-5 h-5 text-blue-600" />
+                Subir Excel/CSV
+              </button>
+
+              <button
+                onClick={openCreate}
+                className="flex w-full cursor-pointer sm:w-auto h-fit items-center justify-center gap-2 rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-bold text-white shadow-sm transition hover:bg-blue-700 active:scale-95"
+              >
+                <PlusIcon className="w-5 h-5" />
+                Nuevo Usuario
+              </button>
+
+              <input
+                type="file"
+                ref={fileInputRef}
+                onChange={handleExcelUpload}
+                accept=".csv, application/vnd.openxmlformats-officedocument.spreadsheetml.sheet, application/vnd.ms-excel"
+                className="hidden"
+              />
+            </div>
+          )}
         </div>
       </div>
 
@@ -229,6 +328,43 @@ export default function PersonerosPage() {
         onCancel={() => setIsDeleteModalOpen(false)}
         loading={isDeleting}
       />
+
+      {/* Loading Overlay Import */}
+      {isUploadingExcel && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-[#091e42]/60 backdrop-blur-sm transition-opacity">
+          <div className="bg-white p-8 rounded-2xl shadow-2xl flex flex-col items-center max-w-sm w-full mx-4 transform animate-in fade-in zoom-in duration-200">
+            <div className="relative mb-6">
+              <div className="w-16 h-16 border-4 border-blue-100 rounded-full"></div>
+              <div
+                className="absolute top-0 left-0 w-16 h-16 border-4 border-blue-600 rounded-full border-t-transparent animate-spin"
+              ></div>
+              <div className="absolute inset-0 flex items-center justify-center">
+                <DocumentArrowUpIcon className="w-6 h-6 text-blue-600 animate-pulse" />
+              </div>
+            </div>
+
+            <h3 className="text-lg font-extrabold text-[#172b4d] mb-2 text-center">
+              Importando Usuarios
+            </h3>
+            <p className="text-sm text-[#52637d] text-center mb-6 max-w-[240px]">
+              Estamos procesando tu archivo Excel. Por favor no cierres esta ventana.
+            </p>
+
+            <div className="w-full bg-slate-100 h-2.5 rounded-full overflow-hidden">
+              <div
+                className="bg-blue-600 h-full rounded-full transition-all duration-300 ease-out relative overflow-hidden"
+                style={{ width: `${uploadProgress}%` }}
+              >
+                <div className="absolute inset-0 bg-white/20 w-full h-full animate-[shimmer_1s_infinite]"></div>
+              </div>
+            </div>
+            <div className="w-full flex justify-between mt-2 text-[11px] font-bold text-[#8993a4]">
+              <span>Progreso</span>
+              <span className="text-blue-600">{uploadProgress}%</span>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Contenedor Principal */}
       <div className="flex-1 overflow-auto bg-[#f4f5f7]">

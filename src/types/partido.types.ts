@@ -3,4 +3,5 @@ export interface Partido {
   nombre: string;
   siglas: string;
   logo_url: string | null;
+  orden: number;
 }

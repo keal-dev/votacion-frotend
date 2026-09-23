@@ -28,5 +28,19 @@ export const partidoService = {
 
   async remove(id: string): Promise<void> {
     await axiosInstance.delete(`/partidos/${id}`);
+  },
+
+  async uploadCsv(electionId: string, file: File): Promise<{ message: string }> {
+    const formData = new FormData();
+    formData.append('file', file);
+    const { data } = await axiosInstance.post(`/partidos/${electionId}/bulk-csv`, formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+    return data;
+  },
+
+  async reorder(updates: { id: string; orden: number }[]): Promise<{ message: string }> {
+    const { data } = await axiosInstance.patch('/partidos/reorder', updates);
+    return data;
   }
 };
