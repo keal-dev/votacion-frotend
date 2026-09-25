@@ -193,6 +193,7 @@ export default function CandidatosPage() {
                                 >
                                     <option value="ALL">Todos los cargos</option>
                                     <option value={CargoCandidato.REGIONAL}>Gubernatura Regional</option>
+                                    <option value={CargoCandidato.CONSEJERO}>Consejería Regional</option>
                                     <option value={CargoCandidato.PROVINCIAL}>Alcaldía Provincial</option>
                                     <option value={CargoCandidato.DISTRITAL}>Alcaldía Distrital</option>
                                 </select>
@@ -275,6 +276,7 @@ export default function CandidatosPage() {
                                                     <td className="px-4 py-3 text-[#52637d] font-medium">{candidato.dni}</td>
                                                     <td className="px-4 py-3">
                                                         <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-bold ${candidato.cargo === CargoCandidato.REGIONAL ? 'bg-purple-50 text-purple-700' :
+                                                                candidato.cargo === CargoCandidato.CONSEJERO ? 'bg-amber-50 text-amber-700' :
                                                                 candidato.cargo === CargoCandidato.PROVINCIAL ? 'bg-blue-50 text-blue-700' :
                                                                     'bg-emerald-50 text-emerald-700'
                                                             }`}>
@@ -299,7 +301,7 @@ export default function CandidatosPage() {
                                                         {(() => {
                                                             const isMissing = 
                                                                 (candidato.cargo === CargoCandidato.REGIONAL && !candidato.region) ||
-                                                                (candidato.cargo === CargoCandidato.PROVINCIAL && (!candidato.region || !candidato.provincia)) ||
+                                                                ((candidato.cargo === CargoCandidato.PROVINCIAL || candidato.cargo === CargoCandidato.CONSEJERO) && (!candidato.region || !candidato.provincia)) ||
                                                                 (candidato.cargo === CargoCandidato.DISTRITAL && (!candidato.region || !candidato.provincia || !candidato.distrito));
                                                                 
                                                             if (isMissing) {
@@ -311,7 +313,7 @@ export default function CandidatosPage() {
                                                             }
                                                             
                                                             if (candidato.cargo === CargoCandidato.REGIONAL) return candidato.region;
-                                                            if (candidato.cargo === CargoCandidato.PROVINCIAL) return `${candidato.provincia} (${candidato.region})`;
+                                                            if (candidato.cargo === CargoCandidato.PROVINCIAL || candidato.cargo === CargoCandidato.CONSEJERO) return `${candidato.provincia} (${candidato.region})`;
                                                             if (candidato.cargo === CargoCandidato.DISTRITAL) return `${candidato.distrito} (${candidato.provincia})`;
                                                         })()}
                                                     </td>

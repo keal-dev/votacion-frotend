@@ -284,7 +284,7 @@ const CustomAlertModal = ({
   );
 };
 
-const ConnectedTabs = ({ mesaId, regionales, provinciales, distritales, activeTab, setActiveTab }: any) => {
+const ConnectedTabs = ({ mesaId, regionales, consejeros, provinciales, distritales, activeTab, setActiveTab }: any) => {
   const votos = useVotosStore((state) => state.votos);
 
   const calcTotal = (candidatos: Candidato[], nivel: string) => {
@@ -297,9 +297,10 @@ const ConnectedTabs = ({ mesaId, regionales, provinciales, distritales, activeTa
   };
 
   const totReg = calcTotal(regionales, 'regional');
+  const totConsejero = calcTotal(consejeros, 'consejero');
   const totProv = calcTotal(provinciales, 'provincial');
   const totDist = calcTotal(distritales, 'distrital');
-  const maxTotal = Math.max(totReg, totProv, totDist);
+  const maxTotal = Math.max(totReg, totConsejero, totProv, totDist);
 
   const getIcon = (tot: number) => {
     if (maxTotal === 0) return null;
@@ -314,6 +315,12 @@ const ConnectedTabs = ({ mesaId, regionales, provinciales, distritales, activeTa
         className={`flex-1 md:flex-none flex items-center justify-center py-[10px] px-[24px] font-semibold text-[14px] rounded-lg transition-all duration-300 ease-out whitespace-nowrap ${activeTab === "regional" ? "bg-white text-green shadow-[0_2px_8px_-2px_rgba(0,0,0,0.12)] ring-1 ring-black/[0.04] scale-100" : "text-[#64748b] hover:text-[#334155] hover:bg-[#f1f5f9] scale-[0.98]"}`}
       >
         Regional {getIcon(totReg)}
+      </button>
+      <button
+        onClick={() => setActiveTab("consejero")}
+        className={`flex-1 md:flex-none flex items-center justify-center py-[10px] px-[24px] font-semibold text-[14px] rounded-lg transition-all duration-300 ease-out whitespace-nowrap ${activeTab === "consejero" ? "bg-white text-amber-600 shadow-[0_2px_8px_-2px_rgba(0,0,0,0.12)] ring-1 ring-black/[0.04] scale-100" : "text-[#64748b] hover:text-[#334155] hover:bg-[#f1f5f9] scale-[0.98]"}`}
+      >
+        Consejero {getIcon(totConsejero)}
       </button>
       <button
         onClick={() => setActiveTab("provincial")}
@@ -396,6 +403,7 @@ export default function VotosPage() {
 
   const distritales = candidatos.filter(c => c.cargo === CargoCandidato.DISTRITAL);
   const provinciales = candidatos.filter(c => c.cargo === CargoCandidato.PROVINCIAL);
+  const consejeros = candidatos.filter(c => c.cargo === CargoCandidato.CONSEJERO);
   const regionales = candidatos.filter(c => c.cargo === CargoCandidato.REGIONAL);
 
   const handleSubmit = async () => {
@@ -534,7 +542,7 @@ export default function VotosPage() {
       <div className="rounded-xl">
 
         {/* TAB NAVIGATION */}
-        <ConnectedTabs mesaId={mesaId} regionales={regionales} provinciales={provinciales} distritales={distritales} activeTab={activeTab} setActiveTab={setActiveTab} />
+        <ConnectedTabs mesaId={mesaId} regionales={regionales} consejeros={consejeros} provinciales={provinciales} distritales={distritales} activeTab={activeTab} setActiveTab={setActiveTab} />
 
         {/* SINGLE CARD CONTENT */}
         <div className="mb-[24px]">
@@ -565,6 +573,16 @@ export default function VotosPage() {
                 <div className="p-8 text-center text-muted bg-white border border-line rounded-xl">No hay candidatos para este nivel de elección en esta mesa.</div>
               ) : (
                   renderBallotList(regionales, "regional")
+              )}
+            </div>
+          )}
+
+          {activeTab === "consejero" && (
+            <div className="animate-in fade-in duration-200">
+              {consejeros.length === 0 ? (
+                <div className="p-8 text-center text-muted bg-white border border-line rounded-xl">No hay candidatos para este nivel de elección en esta mesa.</div>
+              ) : (
+                  renderBallotList(consejeros, "consejero")
               )}
             </div>
           )}

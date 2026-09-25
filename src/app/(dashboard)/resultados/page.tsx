@@ -105,6 +105,7 @@ export default function ResultadosPage() {
   const [loading, setLoading] = useState(true);
   const [data, setData] = useState<any>(null);
   const [selectedNivel, setSelectedNivel] = useState<string>("");
+  const [selectedProvincia, setSelectedProvincia] = useState<string>("");
   const [selectedDistrito, setSelectedDistrito] = useState<string>("");
   const [selectedLocal, setSelectedLocal] = useState<string>("");
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -123,6 +124,7 @@ export default function ResultadosPage() {
           setIsRefreshing(true);
           const response = await axiosInstance.get('/system/resultados', {
             params: {
+              provincia: selectedProvincia || undefined,
               distrito: selectedDistrito || undefined,
               local: selectedLocal || undefined
             }
@@ -131,10 +133,12 @@ export default function ResultadosPage() {
 
           if (response.data.votos && response.data.votos.length > 0) {
             const uniqueNiveles = Array.from(new Set(response.data.votos.map((v: any) => v.nivel))).sort((a: any, b: any) => {
-              const order: Record<string, number> = { DISTRITAL: 1, PROVINCIAL: 2, REGIONAL: 3 };
+              const order: Record<string, number> = { DISTRITAL: 1, PROVINCIAL: 2, CONSEJERO: 3, REGIONAL: 4 };
               return (order[a] || 99) - (order[b] || 99);
             });
-            if (uniqueNiveles.length > 0 && !selectedNivel) setSelectedNivel(uniqueNiveles[0] as string);
+            if (uniqueNiveles.length > 0 && (!selectedNivel || !uniqueNiveles.includes(selectedNivel))) {
+              setSelectedNivel(uniqueNiveles[0] as string);
+            }
           }
         } catch (error) {
           console.error("Error fetching resultados", error);
@@ -149,7 +153,7 @@ export default function ResultadosPage() {
       const interval = setInterval(fetchData, 60000);
       return () => clearInterval(interval);
     }
-  }, [user, selectedDistrito, selectedLocal]);
+  }, [user, selectedProvincia, selectedDistrito, selectedLocal]);
 
   if (!mounted || user?.role === "PERSONERO") return null;
 
@@ -162,7 +166,7 @@ export default function ResultadosPage() {
   }
 
   const niveles = data?.votos ? Array.from(new Set(data.votos.map((v: any) => v.nivel))).sort((a: any, b: any) => {
-    const order: Record<string, number> = { DISTRITAL: 1, PROVINCIAL: 2, REGIONAL: 3 };
+    const order: Record<string, number> = { DISTRITAL: 1, PROVINCIAL: 2, CONSEJERO: 3, REGIONAL: 4 };
     return (order[a] || 99) - (order[b] || 99);
   }) : [];
 
@@ -273,6 +277,28 @@ export default function ResultadosPage() {
               </div>
             )}
 
+            {data?.provinciasLista && data.provinciasLista.length > 0 && (
+              <div className="relative">
+                <select
+                  value={selectedProvincia}
+                  onChange={(e) => {
+                    setSelectedProvincia(e.target.value);
+                    setSelectedDistrito("");
+                    setSelectedLocal("");
+                  }}
+                  className={`appearance-none px-4 py-1.5 pr-10 rounded text-[13px] font-bold outline-none cursor-pointer border transition-colors ${selectedProvincia ? 'bg-[#2171c6] text-white border-[#2171c6]' : 'bg-white text-[#172b4d] border-[#d0d7de] hover:bg-slate-50'}`}
+                >
+                  <option value="">TODAS LAS PROVINCIAS</option>
+                  {data.provinciasLista.map((p: any) => (
+                    <option key={p} value={p}>{p.toUpperCase()}</option>
+                  ))}
+                </select>
+                <div className={`pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 ${selectedProvincia ? 'text-white' : 'text-[#172b4d]'}`}>
+                  <svg className="fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z" /></svg>
+                </div>
+              </div>
+            )}
+
             {data?.distritos && data.distritos.length > 0 && (
               <div className="relative">
                 <select
@@ -315,7 +341,7 @@ export default function ResultadosPage() {
             )}
 
             <button 
-              onClick={() => { setSelectedDistrito(""); setSelectedLocal(""); }}
+              onClick={() => { setSelectedProvincia(""); setSelectedDistrito(""); setSelectedLocal(""); }}
               className="px-5 py-1.5 border border-[#d0d7de] text-[#172b4d] text-[13px] font-bold rounded bg-white hover:border-[#2171c6] hover:text-[#2171c6] transition-colors ml-auto"
             >
               LIMPIAR

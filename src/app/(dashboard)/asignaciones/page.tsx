@@ -143,29 +143,49 @@ export default function AsignacionesPage() {
                       <div 
                         key={personero.id}
                         onClick={() => setSelectedUser(personero)}
-                        className={`px-3 py-2.5 rounded-lg cursor-pointer border transition-all ${
+                        className={`group relative p-3 rounded-xl cursor-pointer transition-all duration-200 border ${
                           isSelected 
-                            ? 'border-blue-300 bg-blue-50 shadow-sm' 
-                            : 'border-transparent hover:border-line hover:bg-slate-50'
+                            ? 'border-blue-200 bg-gradient-to-r from-blue-50 to-white shadow-sm ring-1 ring-blue-500/20' 
+                            : 'border-transparent hover:border-slate-200 hover:bg-slate-50'
                         }`}
                       >
-                        <div className="flex justify-between items-start">
-                          <div>
-                            <strong className="block text-[13px] text-[#172b4d]">
-                              {personero.name} {personero.lastname}
+                        {isSelected && (
+                          <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-8 bg-blue-600 rounded-r-full"></div>
+                        )}
+                        <div className="flex items-center gap-3">
+                          {/* Avatar con Iniciales */}
+                          <div className={`shrink-0 w-10 h-10 rounded-full flex items-center justify-center text-[14px] font-bold transition-colors ${
+                            isSelected 
+                              ? 'bg-blue-600 text-white shadow-md shadow-blue-600/20' 
+                              : 'bg-slate-100 text-slate-600 group-hover:bg-slate-200'
+                          }`}>
+                            {personero.name.charAt(0)}{personero.lastname.charAt(0)}
+                          </div>
+                          
+                          {/* Info del Personero */}
+                          <div className="flex-1 min-w-0">
+                            <div className="flex justify-between items-center mb-0.5">
+                              <strong className={`block truncate text-[14px] ${isSelected ? 'text-blue-900 font-extrabold' : 'text-[#172b4d] font-bold'}`}>
+                                {personero.name} {personero.lastname}
+                              </strong>
+                              {assignedCount > 0 && (
+                                <span className={`shrink-0 ml-2 inline-flex items-center justify-center text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                                  isSelected ? 'bg-blue-600 text-white' : 'bg-slate-100 text-slate-600'
+                                }`}>
+                                  {assignedCount} mesas
+                                </span>
+                              )}
+                            </div>
+                            
+                            <div className="flex items-center gap-2">
+                              <small className="text-slate-500 text-[12px] font-medium">DNI: {personero.dni}</small>
                               {personero.role === 'COORDINADOR' && (
-                                <span className="ml-2 inline-flex items-center justify-center bg-purple-100 text-purple-700 text-[9px] font-extrabold px-1.5 py-0.5 rounded border border-purple-200 align-middle">
+                                <span className="inline-flex items-center justify-center bg-purple-50 text-purple-700 text-[9px] font-black px-1.5 py-0.5 rounded shadow-[0_0_0_1px_rgba(168,85,247,0.2)]">
                                   COORDINADOR
                                 </span>
                               )}
-                            </strong>
-                            <small className="text-[#52637d] text-[11px]">DNI: {personero.dni}</small>
+                            </div>
                           </div>
-                          {assignedCount > 0 && (
-                            <span className="inline-flex items-center justify-center bg-blue-100 text-blue-700 text-[10px] font-bold px-2 py-0.5 rounded-full">
-                              {assignedCount} mesas
-                            </span>
-                          )}
                         </div>
                       </div>
                     );
@@ -181,13 +201,19 @@ export default function AsignacionesPage() {
                       <div className="flex items-center gap-2 bg-slate-100 px-3 py-1.5 rounded-full border border-slate-200">
                         <span className="text-[11px] font-bold text-slate-600 uppercase tracking-wider">Total Mesas</span>
                         <span className="bg-white text-slate-800 text-[12px] font-black px-2 py-0.5 rounded-full shadow-[0_1px_2px_rgba(0,0,0,0.05)]">
-                          {mesas.length}
+                          {mesasFiltradasGeograficamente.length}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-2 bg-purple-50 px-3 py-1.5 rounded-full border border-purple-200">
+                        <span className="text-[11px] font-bold text-purple-700 uppercase tracking-wider">Electores</span>
+                        <span className="bg-white text-purple-700 text-[12px] font-black px-2 py-0.5 rounded-full shadow-[0_1px_2px_rgba(0,0,0,0.05)]">
+                          {mesasFiltradasGeograficamente.reduce((acc, m) => acc + (m.cantidad_electores || 0), 0).toLocaleString()}
                         </span>
                       </div>
                       <div className="flex items-center gap-2 bg-emerald-50 px-3 py-1.5 rounded-full border border-emerald-200">
                         <span className="text-[11px] font-bold text-emerald-700 uppercase tracking-wider">Asignadas</span>
                         <span className="bg-white text-emerald-700 text-[12px] font-black px-2 py-0.5 rounded-full shadow-[0_1px_2px_rgba(0,0,0,0.05)]">
-                          {mesas.filter(m => m.personero !== null).length}
+                          {mesasFiltradasGeograficamente.filter(m => m.personero !== null).length}
                         </span>
                   </div>
                 </div>
@@ -230,7 +256,8 @@ export default function AsignacionesPage() {
                         <tr>
                           <th className="px-5 py-3.5">Mesa</th>
                           <th className="px-5 py-3.5">Local de votación</th>
-                              <th className="px-5 py-3.5">Centro Poblado</th>
+                          <th className="px-5 py-3.5 text-center">Electores</th>
+                          <th className="px-5 py-3.5">Centro Poblado</th>
                           <th className="px-5 py-3.5">Distrito</th>
                           <th className="px-5 py-3.5 text-center">Asignar</th>
                         </tr>
@@ -247,6 +274,9 @@ export default function AsignacionesPage() {
                               </td>
                               <td className="px-5 py-3 text-[13px]">
                                 {mesa.local?.nombre || 'Sin local'}
+                              </td>
+                              <td className="px-5 py-3 text-[13px] text-center font-semibold text-[#52637d]">
+                                {mesa.cantidad_electores || 0}
                               </td>
                               <td className="px-5 py-3 text-[13px]">
                                 {mesa.local?.centro_poblado || '-'}
@@ -273,7 +303,7 @@ export default function AsignacionesPage() {
                         })}
                             {mesasFiltradasGeograficamente.length === 0 && (
                           <tr>
-                                <td colSpan={5} className="px-5 py-10 text-center text-[#52637d]">
+                                <td colSpan={6} className="px-5 py-10 text-center text-[#52637d]">
                                   No hay mesas que coincidan con estos filtros.
                             </td>
                           </tr>

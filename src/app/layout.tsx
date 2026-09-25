@@ -9,6 +9,8 @@ export const metadata: Metadata = {
   description: "Sistema Electoral Municipal",
 };
 
+import { Toaster } from 'react-hot-toast';
+
 export default function RootLayout({
   children,
 }: {
@@ -18,6 +20,7 @@ export default function RootLayout({
     <html lang="es">
       <body className={inter.className}>
         {children}
+        <Toaster position="top-right" />
       </body>
     </html>
   );

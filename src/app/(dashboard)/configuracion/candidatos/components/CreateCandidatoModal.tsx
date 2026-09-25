@@ -129,7 +129,7 @@ export default function CreateCandidatoModal({ isOpen, activeElection, candidato
         if (cargo === CargoCandidato.REGIONAL) {
             return c.region === region;
         }
-        if (cargo === CargoCandidato.PROVINCIAL) {
+        if (cargo === CargoCandidato.PROVINCIAL || cargo === CargoCandidato.CONSEJERO) {
             return c.region === region && c.provincia === provincia;
         }
         if (cargo === CargoCandidato.DISTRITAL) {
@@ -141,6 +141,19 @@ export default function CreateCandidatoModal({ isOpen, activeElection, candidato
     if (yaExiste) {
         setError('Este partido político ya cuenta con un candidato inscrito para este mismo cargo y jurisdicción.');
         return;
+    }
+
+    if (cargo === CargoCandidato.REGIONAL && !region) {
+      setError('Debe seleccionar la Región obligatoriamente para este cargo.');
+      return;
+    }
+    if ((cargo === CargoCandidato.PROVINCIAL || cargo === CargoCandidato.CONSEJERO) && (!region || !provincia)) {
+      setError('Debe seleccionar la Región y Provincia obligatoriamente para este cargo.');
+      return;
+    }
+    if (cargo === CargoCandidato.DISTRITAL && (!region || !provincia || !distrito)) {
+      setError('Debe seleccionar la Región, Provincia y Distrito obligatoriamente para este cargo.');
+      return;
     }
 
     setLoading(true);
@@ -166,14 +179,8 @@ export default function CreateCandidatoModal({ isOpen, activeElection, candidato
         distrito: cargo === CargoCandidato.DISTRITAL && distrito ? distrito : undefined,
         fotoUrl: uploadedFotoUrl || undefined
       });
-      
-      let hasWarning = false;
-      if (cargo === CargoCandidato.REGIONAL && !region) hasWarning = true;
-      if (cargo === CargoCandidato.PROVINCIAL && (!region || !provincia)) hasWarning = true;
-      if (cargo === CargoCandidato.DISTRITAL && (!region || !provincia || !distrito)) hasWarning = true;
-
       handleClose();
-      onSuccess(hasWarning);
+      onSuccess(false);
     } catch (err: any) {
       console.error(err);
       setError(err.response?.data?.message || 'Error al inscribir el candidato');
@@ -358,6 +365,7 @@ export default function CreateCandidatoModal({ isOpen, activeElection, candidato
                 disabled={loading}
                 >
                     <option value={CargoCandidato.REGIONAL}>Gobernador Regional</option>
+                    <option value={CargoCandidato.CONSEJERO}>Consejero Regional</option>
                     <option value={CargoCandidato.PROVINCIAL}>Alcalde Provincial</option>
                     <option value={CargoCandidato.DISTRITAL}>Alcalde Distrital</option>
                 </select>
@@ -366,7 +374,7 @@ export default function CreateCandidatoModal({ isOpen, activeElection, candidato
             {/* Ubicación Geográfica según el cargo */}
             <div className="grid grid-cols-3 gap-3 mb-2">
                 <div>
-                    <label className="mb-1 block text-[12px] font-bold text-[#071f43]">Región (Opcional)</label>
+                    <label className="mb-1 block text-[12px] font-bold text-[#071f43]">Región *</label>
                     <select
                         value={region}
                         onChange={(e) => setRegion(e.target.value)}
@@ -378,7 +386,7 @@ export default function CreateCandidatoModal({ isOpen, activeElection, candidato
                 </div>
                 {cargo !== CargoCandidato.REGIONAL && (
                     <div>
-                        <label className="mb-1 block text-[12px] font-bold text-[#071f43]">Provincia (Opcional)</label>
+                        <label className="mb-1 block text-[12px] font-bold text-[#071f43]">Provincia *</label>
                         <select
                             value={provincia}
                             onChange={(e) => setProvincia(e.target.value)}
@@ -392,7 +400,7 @@ export default function CreateCandidatoModal({ isOpen, activeElection, candidato
                 )}
                 {cargo === CargoCandidato.DISTRITAL && (
                     <div>
-                        <label className="mb-1 block text-[12px] font-bold text-[#071f43]">Distrito (Opcional)</label>
+                        <label className="mb-1 block text-[12px] font-bold text-[#071f43]">Distrito *</label>
                         <select
                             value={distrito}
                             onChange={(e) => setDistrito(e.target.value)}

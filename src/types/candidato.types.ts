@@ -2,6 +2,7 @@ import { Partido } from './partido.types';
 
 export enum CargoCandidato {
   REGIONAL = 'REGIONAL',
+  CONSEJERO = 'CONSEJERO',
   PROVINCIAL = 'PROVINCIAL',
   DISTRITAL = 'DISTRITAL',
 }

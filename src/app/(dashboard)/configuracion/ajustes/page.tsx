@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useSettingsStore } from "@/store/settings.store";
 import { settingsService, SettingData } from "@/services/settings.service";
 import ResetSystemModal from "@/components/modals/ResetSystemModal";
+import ClearDataModal from "@/components/modals/ClearDataModal";
 import ConfirmModal from "@/components/modals/ConfirmModal";
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 
@@ -14,6 +15,7 @@ export default function AjustesGeneralesPage() {
   const [formData, setFormData] = useState<Partial<SettingData>>({});
   const [isSaving, setIsSaving] = useState(false);
   const [isResetModalOpen, setIsResetModalOpen] = useState(false);
+  const [isClearDataModalOpen, setIsClearDataModalOpen] = useState(false);
   
   // UI States
   const [saveStatus, setSaveStatus] = useState<'idle' | 'success' | 'error'>('idle');
@@ -131,6 +133,31 @@ export default function AjustesGeneralesPage() {
           </button>
         </div>
 
+        {/* Simulacro y Mantenimiento */}
+        <section className="mt-8 border border-orange-300 rounded-xl overflow-hidden shadow-sm bg-white">
+          <div className="bg-orange-50 px-6 py-4 border-b border-orange-200">
+            <h2 className="text-[16px] font-semibold text-orange-800">Zona de Simulacros</h2>
+          </div>
+
+          <div className="p-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div>
+              <h3 className="text-sm font-semibold text-[#24292f]">Limpiar Datos de Votación</h3>
+              <p className="text-sm text-[#57606a] mt-1">
+                Borrará solo Votos, Actas y Asistencias. Mantiene intactos tus Personeros, Mesas, Candidatos y Partidos. Ideal para después de un simulacro.
+              </p>
+            </div>
+            
+            <div className="shrink-0 flex items-center">
+              <button
+                onClick={() => setIsClearDataModalOpen(true)}
+                className="px-4 py-2 font-semibold text-sm rounded-lg transition-colors shadow-sm border bg-white text-orange-600 border-orange-300 hover:bg-orange-600 hover:text-white hover:border-orange-600"
+              >
+                Limpiar Datos
+              </button>
+            </div>
+          </div>
+        </section>
+
         {/* Danger Zone */}
         <section className="mt-8 border border-[#cf222e] rounded-xl overflow-hidden shadow-sm bg-white">
           <div className="bg-[#ffebe9] px-6 py-4 border-b border-[#cf222e]">
@@ -161,6 +188,11 @@ export default function AjustesGeneralesPage() {
       <ResetSystemModal 
         isOpen={isResetModalOpen} 
         onClose={() => setIsResetModalOpen(false)} 
+      />
+
+      <ClearDataModal
+        isOpen={isClearDataModalOpen}
+        onClose={() => setIsClearDataModalOpen(false)}
       />
     </div>
   );

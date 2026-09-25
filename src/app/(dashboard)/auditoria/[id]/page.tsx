@@ -8,6 +8,7 @@ import VisibilityIcon from '@mui/icons-material/Visibility';
 import ImageSearchIcon from '@mui/icons-material/ImageSearch';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import FileUploadIcon from '@mui/icons-material/FileUpload';
+import DeleteOutlineOutlinedIcon from '@mui/icons-material/DeleteOutlineOutlined';
 import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown';
 import KeyboardArrowUpIcon from '@mui/icons-material/KeyboardArrowUp';
 import { useRouter, useParams } from "next/navigation";
@@ -72,6 +73,24 @@ export default function ActaDetallePage() {
     }
   };
 
+  const handleDeleteFoto = async (fotoId: string) => {
+    if (!window.confirm("¿Estás seguro de que deseas eliminar esta foto permanentemente?")) return;
+    try {
+      await axiosInstance.delete(`/actas/${selectedActa.id}/fotos/${fotoId}`);
+
+      const updatedFotos = selectedActa.fotos.filter((f: any) => f.id !== fotoId);
+      setSelectedActa({ ...selectedActa, fotos: updatedFotos });
+
+      const fotoActual = selectedActa.fotos.find((f: any) => f.id === fotoId);
+      if (fotoActual && activeImage === fotoActual.url) {
+        setActiveImage(updatedFotos.length > 0 ? updatedFotos[0].url : null);
+      }
+    } catch (error) {
+      console.error("Error eliminando foto", error);
+      alert("Error al eliminar la foto");
+    }
+  };
+
   useEffect(() => {
     if (!user) return;
     
@@ -83,7 +102,7 @@ export default function ActaDetallePage() {
           if (data?.fotos?.length > 0) {
             setActiveImage(data.fotos[0].url);
           }
-          const levels = ['REGIONAL', 'PROVINCIAL', 'DISTRITAL'];
+          const levels = ['REGIONAL', 'CONSEJERO', 'PROVINCIAL', 'DISTRITAL'];
           const firstLevel = levels.find(lvl => data?.votos?.some((v: any) => v.nivel === lvl));
           if (firstLevel) {
             setExpandedLevel(firstLevel);
@@ -228,6 +247,18 @@ export default function ActaDetallePage() {
                   <FileUploadIcon fontSize="small" /> {isUploadingFotos ? 'Subiendo...' : 'Añadir Fotos'}
                 </button>
               </div>
+              <div className="absolute top-4 right-4 flex gap-2">
+                <button
+                  onClick={() => {
+                    const fotoId = selectedActa.fotos.find((f: any) => f.url === activeImage)?.id;
+                    if (fotoId) handleDeleteFoto(fotoId);
+                  }}
+                  className="bg-red-600/80 text-white px-3 py-1.5 rounded-lg backdrop-blur-sm flex items-center gap-2 text-sm hover:bg-red-600 transition-colors"
+                  title="Eliminar foto"
+                >
+                  <DeleteOutlineOutlinedIcon fontSize="small" /> Eliminar
+                </button>
+              </div>
             </div>
           ) : (
             <div className="flex-1 flex flex-col items-center justify-center text-white/50 text-sm gap-4">
@@ -332,7 +363,7 @@ export default function ActaDetallePage() {
           </div>
           
           <div className="flex-1 overflow-y-auto p-5 bg-[#fdfdfd]">
-            {['REGIONAL', 'PROVINCIAL', 'DISTRITAL'].map((cargo) => {
+            {['REGIONAL', 'CONSEJERO', 'PROVINCIAL', 'DISTRITAL'].map((cargo) => {
               const votosCargo = selectedActa.votos?.filter((v: any) => v.nivel === cargo)
                 .sort((a: any, b: any) => {
                   if (a.tipo !== 'CANDIDATO') return 1;
