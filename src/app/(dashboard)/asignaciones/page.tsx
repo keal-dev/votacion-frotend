@@ -115,7 +115,7 @@ export default function AsignacionesPage() {
           </div>
         ) : (
           <div className="grid gap-[18px] grid-cols-1 md:grid-cols-[1fr_2fr] h-full">
-            <div className="bg-white border border-line rounded-2xl flex flex-col shadow-[0_2px_10px_rgba(0,0,0,0.02)] overflow-hidden">
+            <div className="bg-white border border-line rounded-2xl flex flex-col shadow-[0_2px_10px_rgba(0,0,0,0.02)] overflow-hidden max-h-[600px]">
               <div className="border-b border-line px-5 py-4 bg-[#f8fafc]">
                 <h2 className="text-[15px] font-bold text-[#172b4d]">Personeros registrados</h2>
               </div>
@@ -194,7 +194,7 @@ export default function AsignacionesPage() {
               </div>
             </div>
 
-            <div className="bg-white border border-line rounded-2xl flex flex-col shadow-[0_2px_10px_rgba(0,0,0,0.02)] overflow-hidden">
+            <div className="bg-white border border-line rounded-2xl flex flex-col shadow-[0_2px_10px_rgba(0,0,0,0.02)] overflow-hidden max-h-[600px]">
                   <div className="border-b border-line px-5 py-3 bg-[#f8fafc] flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 sm:gap-0">
                 <h2 className="text-[15px] font-bold text-[#172b4d]">Asignar mesas</h2>
                     <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">

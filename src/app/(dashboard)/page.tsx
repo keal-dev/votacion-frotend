@@ -123,34 +123,10 @@ export default function DashboardInicio() {
 
     return (
       <div className="max-w-4xl mx-auto animate-in fade-in slide-in-from-left-8 duration-300">
-        {user.isDefaultPassword && !hidePasswordWarning && (
-          <div className="bg-orange-50 border border-orange-200 rounded-lg p-4 mx-auto mb-6 flex flex-col sm:flex-row items-center justify-between text-left shadow-sm relative group pr-10">
-            <button 
-              onClick={() => setHidePasswordWarning(true)}
-              className="absolute top-1/2 -translate-y-1/2 right-2 text-orange-400 hover:text-orange-700 p-1 opacity-60 hover:opacity-100 transition-all"
-              title="Cerrar advertencia"
-            >
-              <CloseIcon sx={{ fontSize: 18 }} />
-            </button>
-            <div className="flex items-center gap-3 mb-3 sm:mb-0">
-              <div className="w-10 h-10 rounded-full bg-orange-100 flex items-center justify-center shrink-0">
-                <KeyOutlinedIcon className="text-orange-600" />
-              </div>
-              <div>
-                <h3 className="text-orange-800 font-bold text-sm m-0 leading-tight">Alerta de Seguridad</h3>
-                <p className="text-orange-700 text-xs m-0 mt-0.5">
-                  Tu contraseña sigue siendo tu DNI. Cámbiala ahora para proteger tu cuenta.
-                </p>
-              </div>
-            </div>
-            <button 
-              onClick={() => setIsPasswordModalOpen(true)}
-              className="bg-orange-600 hover:bg-orange-700 text-white text-xs font-bold py-2 px-4 rounded whitespace-nowrap sm:ml-4 transition-colors w-full sm:w-auto"
-            >
-              Cambiar Contraseña
-            </button>
-          </div>
-        )}
+        {/*
+          user.isDefaultPassword && !hidePasswordWarning && (...)
+          Alerta de cambio de contraseña comentada temporalmente por petición del usuario
+        */}
 
         <div className="bg-white border border-[#d0d7de] rounded-2xl shadow-sm p-8 text-center mb-8">
           <div className="w-16 h-16 bg-[#e3fcee] text-[#0b9349] rounded-full flex items-center justify-center mx-auto mb-4">

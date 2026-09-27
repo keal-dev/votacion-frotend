@@ -349,6 +349,7 @@ export default function VotosPage() {
   const [actaFiles, setActaFiles] = useState<File[]>([]);
   const [observaciones, setObservaciones] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [step, setStep] = useState(1);
   const [showConfirmSubmit, setShowConfirmSubmit] = useState(false);
   const [modalConfig, setModalConfig] = useState<{
     isOpen: boolean;
@@ -541,6 +542,8 @@ export default function VotosPage() {
 
       <div className="rounded-xl">
 
+        {step === 1 && (
+          <>
         {/* TAB NAVIGATION */}
         <ConnectedTabs mesaId={mesaId} regionales={regionales} consejeros={consejeros} provinciales={provinciales} distritales={distritales} activeTab={activeTab} setActiveTab={setActiveTab} />
 
@@ -588,7 +591,11 @@ export default function VotosPage() {
           )}
 
         </div>
+          </>
+        )}
 
+        {step === 2 && (
+          <>
         {/* BOTTOM SECTIONS */}
         <div className="grid gap-[18px] grid-cols-1 md:grid-cols-[1.6fr_1fr]">
           <ActaUploader onFilesChange={setActaFiles} />
@@ -607,26 +614,50 @@ export default function VotosPage() {
             ></textarea>
           </div>
         </div>
+          </>
+        )}
 
         <div className="flex justify-end gap-[10px] mt-[18px]">
-          <button 
-            type="button"
-            onClick={() => router.back()}
-            disabled={isSubmitting}
-            className="border border-line rounded-lg px-[15px] py-[10px] font-bold cursor-pointer bg-white text-[#344054] disabled:opacity-50"
-          >
-            Cancelar
-          </button>
-          <button 
-            type="button"
-            onClick={handleSubmit}
-            disabled={isSubmitting}
-            className="border-0 rounded-lg px-[15px] py-[10px] font-bold cursor-pointer bg-green text-white disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-          >
-            {isSubmitting && <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>}
-            {!isSubmitting && <CloudUploadIcon sx={{ fontSize: 20 }} />}
-            {isSubmitting ? "Enviando..." : "Enviar Acta"}
-          </button>
+          {step === 1 ? (
+            <>
+              <button 
+                type="button"
+                onClick={() => router.back()}
+                disabled={isSubmitting}
+                className="border border-line rounded-lg px-[15px] py-[10px] font-bold cursor-pointer bg-white text-[#344054] disabled:opacity-50"
+              >
+                Cancelar
+              </button>
+              <button 
+                type="button"
+                onClick={() => setStep(2)}
+                className="border-0 rounded-lg px-[15px] py-[10px] font-bold cursor-pointer bg-[#0f172a] text-white flex items-center justify-center gap-2"
+              >
+                Continuar a Fotos
+              </button>
+            </>
+          ) : (
+            <>
+              <button 
+                type="button"
+                onClick={() => setStep(1)}
+                disabled={isSubmitting}
+                className="border border-line rounded-lg px-[15px] py-[10px] font-bold cursor-pointer bg-white text-[#344054] disabled:opacity-50"
+              >
+                Volver
+              </button>
+              <button 
+                type="button"
+                onClick={handleSubmit}
+                disabled={isSubmitting}
+                className="border-0 rounded-lg px-[15px] py-[10px] font-bold cursor-pointer bg-green text-white disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+              >
+                {isSubmitting && <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>}
+                {!isSubmitting && <CloudUploadIcon sx={{ fontSize: 20 }} />}
+                {isSubmitting ? "Enviando..." : "Enviar Acta"}
+              </button>
+            </>
+          )}
         </div>
 
         <div className="p-[12px] rounded-[9px] bg-[#fff8e7] border border-[#f5d98b] text-[#8a5a00] text-[12px] mt-[14px]">

@@ -190,27 +190,10 @@ export default function PersoneroPage() {
         </div>
       </div>
 
-      {user?.isDefaultPassword && (
-        <div className="bg-orange-50 border border-orange-200 rounded-xl p-6 mb-6 flex flex-col md:flex-row items-center justify-between gap-4 shadow-sm animate-in fade-in duration-300">
-          <div className="flex items-center gap-4">
-            <div className="w-12 h-12 rounded-full bg-orange-200 flex items-center justify-center shrink-0">
-              <KeyOutlinedIcon className="text-orange-600" />
-            </div>
-            <div>
-              <h3 className="text-orange-800 font-bold text-lg m-0">¡Alerta de Seguridad!</h3>
-              <p className="text-orange-700 m-0 mt-1 max-w-xl">
-                Hemos detectado que tu contraseña sigue siendo tu DNI. Por seguridad, te recomendamos cambiarla de inmediato para proteger tu acceso.
-              </p>
-            </div>
-          </div>
-          <button 
-            onClick={() => setIsPasswordModalOpen(true)}
-            className="bg-orange-600 hover:bg-orange-700 text-white font-bold py-2.5 px-6 rounded-lg whitespace-nowrap transition-colors"
-          >
-            Cambiar Contraseña
-          </button>
-        </div>
-      )}
+      {/* 
+        user?.isDefaultPassword && ( ... )
+        Alerta de cambio de contraseña comentada temporalmente por petición del usuario 
+      */}
 
       {activeElection?.estado === 'PREPARACION' && (
         <div className="bg-white border border-[#edf0f2] rounded-[16px] p-[40px] text-center shadow-sm flex flex-col items-center justify-center min-h-[400px] mt-4">
