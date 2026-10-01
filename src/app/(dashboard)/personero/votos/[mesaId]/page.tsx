@@ -444,6 +444,45 @@ export default function VotosPage() {
     }
   };
 
+  const handleContinueToPhotos = () => {
+    const todosLosVotos = useVotosStore.getState().votos;
+    
+    // Validar que la suma total coincida en todas las pestañas
+    const calcTotal = (candidatosList: Candidato[], nivel: string) => {
+      if (candidatosList.length === 0) return null; // Ignorar pestañas sin candidatos
+      let sum = 0;
+      candidatosList.forEach(c => sum += parseInt(todosLosVotos[`${mesaId}_${c.id}`]) || 0);
+      sum += parseInt(todosLosVotos[`${mesaId}_blanco_${nivel}`]) || 0;
+      sum += parseInt(todosLosVotos[`${mesaId}_nulo_${nivel}`]) || 0;
+      sum += parseInt(todosLosVotos[`${mesaId}_impugnado_${nivel}`]) || 0;
+      return sum;
+    };
+
+    const totales = [
+      calcTotal(regionales, 'regional'),
+      calcTotal(consejeros, 'consejero'),
+      calcTotal(provinciales, 'provincial'),
+      calcTotal(distritales, 'distrital')
+    ].filter((t): t is number => t !== null);
+
+    if (totales.length > 0) {
+      const firstTotal = totales[0];
+      const todosIguales = totales.every(t => t === firstTotal);
+
+      if (!todosIguales) {
+        showAlert("Totales inconsistentes", "La suma total de votos no coincide en todas las pestañas. Verifica que las cantidades cuadren exactamente en todos los niveles antes de continuar.", "warning");
+        return;
+      }
+      
+      if (firstTotal === 0) {
+        showAlert("Sin votos", "Debes ingresar la cantidad de votos reales antes de continuar.", "warning");
+        return;
+      }
+    }
+
+    setStep(2);
+  };
+
   const renderBallotList = (candidatosList: Candidato[], nivel: string) => {
     return (
       <div className="border-[3px] border-black bg-white rounded-md overflow-hidden flex flex-col shadow-sm">
@@ -630,7 +669,7 @@ export default function VotosPage() {
               </button>
               <button 
                 type="button"
-                onClick={() => setStep(2)}
+                onClick={handleContinueToPhotos}
                 className="border-0 rounded-lg px-[15px] py-[10px] font-bold cursor-pointer bg-[#0f172a] text-white flex items-center justify-center gap-2"
               >
                 Continuar a Fotos
