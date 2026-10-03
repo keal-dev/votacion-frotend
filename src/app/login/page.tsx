@@ -214,6 +214,25 @@ export default function LoginPage() {
                             </span>
                         </button>
                     </form>
+
+                    <div className="mt-8 relative flex items-center">
+                        <div className="flex-grow border-t border-slate-200"></div>
+                        <span className="flex-shrink-0 mx-4 text-slate-400 text-[11px] font-bold uppercase tracking-wider">O</span>
+                        <div className="flex-grow border-t border-slate-200"></div>
+                    </div>
+
+                    <button
+                        type="button"
+                        onClick={() => router.push('/encuesta')}
+                        className="w-full mt-6 h-[54px] rounded-xl font-bold text-[#0b9349] bg-emerald-50 border-2 border-emerald-100 hover:bg-emerald-100/70 hover:border-emerald-200 transition-all shadow-sm flex items-center justify-center gap-2 group"
+                    >
+                        <span className="text-[14px]">
+                            ¿Tienes un código de encuesta?
+                        </span>
+                        <span className="transform group-hover:translate-x-1 transition-transform">
+                            →
+                        </span>
+                    </button>
                 </div>
             </section>
         </main>

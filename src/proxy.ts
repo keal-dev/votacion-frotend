@@ -8,9 +8,10 @@ export function proxy(request: NextRequest) {
   // Saber si el usuario está intentando entrar a rutas públicas
   const isLoginPage = request.nextUrl.pathname.startsWith('/login');
   const isMaintenancePage = request.nextUrl.pathname.startsWith('/mantenimiento');
+  const isEncuestaPage = request.nextUrl.pathname.startsWith('/encuesta');
 
   // Si NO tiene token y NO está en una página pública -> Redirigir a login
-  if (!token && !isLoginPage && !isMaintenancePage) {
+  if (!token && !isLoginPage && !isMaintenancePage && !isEncuestaPage) {
     return NextResponse.redirect(new URL('/login', request.url));
   }
 

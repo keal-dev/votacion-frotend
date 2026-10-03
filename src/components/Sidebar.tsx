@@ -13,6 +13,7 @@ import EditOutlinedIcon from '@mui/icons-material/EditOutlined';
 import LogoutOutlinedIcon from '@mui/icons-material/LogoutOutlined';
 import CloseOutlinedIcon from '@mui/icons-material/CloseOutlined';
 import FactCheckOutlinedIcon from '@mui/icons-material/FactCheckOutlined';
+import PollOutlinedIcon from '@mui/icons-material/PollOutlined';
 import { Settings } from "@mui/icons-material";
 import { useSettingsStore } from "@/store/settings.store";
 
@@ -40,6 +41,7 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
       { href: "/resultados", label: "Resultados", icon: <BarChartOutlinedIcon fontSize="small" />, roles: ["ADMIN", "COORDINADOR"] },
       { href: "/auditoria", label: "Auditoría", icon: <FactCheckOutlinedIcon fontSize="small" />, roles: ["ADMIN", "COORDINADOR"] },
       { href: "/configuracion", label: "Configuración", icon: <Settings fontSize="small" />, roles: ["ADMIN", "COORDINADOR"] },
+      { href: "/encuestas", label: "Boca de Urna", icon: <PollOutlinedIcon fontSize="small" />, roles: ["ADMIN", "COORDINADOR"] },
     ];
 
     if (!mounted || !user) return allLinks.filter(link => link.roles.includes("PERSONERO")); // Fallback seguro
