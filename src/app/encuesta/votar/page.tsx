@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { Suspense, useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import axiosInstance from "@/utils/axios";
 import PersonOutlineOutlinedIcon from '@mui/icons-material/PersonOutlineOutlined';
@@ -25,7 +25,7 @@ const getImageUrl = (url: string | null) => {
     return `${baseUrl}${url}`;
 };
 
-export default function VotarEncuestaPage() {
+function VotarEncuestaContent() {
     const router = useRouter();
     const searchParams = useSearchParams();
     const codigo = searchParams.get("codigo");
@@ -226,5 +226,13 @@ export default function VotarEncuestaPage() {
                 )}
             </div>
         </main>
+    );
+}
+
+export default function VotarEncuestaPage() {
+    return (
+        <Suspense fallback={<div className="min-h-screen flex items-center justify-center bg-slate-50"><div className="animate-spin h-10 w-10 border-4 border-emerald-500 border-t-transparent rounded-full"></div></div>}>
+            <VotarEncuestaContent />
+        </Suspense>
     );
 }

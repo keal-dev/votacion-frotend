@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { Suspense, useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import axiosInstance from "@/utils/axios";
 import LocationOnOutlinedIcon from '@mui/icons-material/LocationOnOutlined';
@@ -10,7 +10,7 @@ interface Local {
     nombre: string;
 }
 
-export default function SelectLocalPage() {
+function SelectLocalContent() {
     const router = useRouter();
     const searchParams = useSearchParams();
     const codigo = searchParams.get("codigo");
@@ -127,5 +127,13 @@ export default function SelectLocalPage() {
                 </form>
             </div>
         </main>
+    );
+}
+
+export default function SelectLocalPage() {
+    return (
+        <Suspense fallback={<div className="min-h-screen flex items-center justify-center bg-slate-50"><div className="animate-spin h-10 w-10 border-4 border-blue-500 border-t-transparent rounded-full"></div></div>}>
+            <SelectLocalContent />
+        </Suspense>
     );
 }
