@@ -73,55 +73,21 @@ export default function PersoneroPage() {
     fetchData();
   }, []);
 
-  const handleCheckIn = () => {
+  const handleCheckIn = async () => {
     setIsCheckingIn(true);
     setLocationError(null);
 
-    if ("geolocation" in navigator) {
-      navigator.geolocation.getCurrentPosition(
-        async (position) => {
-          const lat = position.coords.latitude;
-          const lng = position.coords.longitude;
-
-          try {
-            const data = await asistenciaService.checkIn(lat, lng);
-            setGpsLocation({ lat: data.latitud_llegada, lng: data.longitud_llegada });
-            const arrivalDate = new Date(data.fecha_llegada);
-            setCurrentTime(arrivalDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
-            setIsCheckedIn(true);
-            setShowSuccessCard(true);
-          } catch (error: any) {
-            setLocationError(error.response?.data?.message || "Error al registrar asistencia en el servidor.");
-          } finally {
-            setIsCheckingIn(false);
-          }
-        },
-        (error) => {
-          setIsCheckingIn(false);
-          switch (error.code) {
-            case error.PERMISSION_DENIED:
-              setLocationError("Se denegó el acceso a la ubicación. Es obligatorio para registrar tu llegada al local de votación.");
-              break;
-            case error.POSITION_UNAVAILABLE:
-              setLocationError("La información de ubicación no está disponible en este momento.");
-              break;
-            case error.TIMEOUT:
-              setLocationError("Se agotó el tiempo de espera para obtener la ubicación. Intenta nuevamente.");
-              break;
-            default:
-              setLocationError("Ocurrió un error desconocido al intentar obtener tu ubicación.");
-              break;
-          }
-        },
-        {
-          enableHighAccuracy: true,
-          timeout: 10000,
-          maximumAge: 0
-        }
-      );
-    } else {
+    try {
+      const data = await asistenciaService.checkIn();
+      setGpsLocation({ lat: data.latitud_llegada || 0, lng: data.longitud_llegada || 0 });
+      const arrivalDate = new Date(data.fecha_llegada);
+      setCurrentTime(arrivalDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
+      setIsCheckedIn(true);
+      setShowSuccessCard(true);
+    } catch (error: any) {
+      setLocationError(error.response?.data?.message || "Error al registrar asistencia en el servidor.");
+    } finally {
       setIsCheckingIn(false);
-      setLocationError("Tu navegador o dispositivo no soporta la función de geolocalización.");
     }
   };
 
@@ -134,39 +100,22 @@ export default function PersoneroPage() {
     }
   };
 
-  const executeCheckOut = () => {
+  const executeCheckOut = async () => {
     setShowCheckoutWarning(false);
     setIsCheckingOut(true);
     setLocationError(null);
 
-    if ("geolocation" in navigator) {
-      navigator.geolocation.getCurrentPosition(
-        async (position) => {
-          const lat = position.coords.latitude;
-          const lng = position.coords.longitude;
-
-          try {
-            const data = await asistenciaService.checkOut(lat, lng);
-            setIsCheckedOut(true);
-            if (data.fecha_salida) {
-              const departureDate = new Date(data.fecha_salida);
-              setCheckoutTime(departureDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
-            }
-          } catch (error: any) {
-            setLocationError(error.response?.data?.message || "Error al registrar salida en el servidor.");
-          } finally {
-            setIsCheckingOut(false);
-          }
-        },
-        (error) => {
-          setIsCheckingOut(false);
-          setLocationError("Ocurrió un error al obtener ubicación para la salida.");
-        },
-        { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
-      );
-    } else {
+    try {
+      const data = await asistenciaService.checkOut();
+      setIsCheckedOut(true);
+      if (data.fecha_salida) {
+        const departureDate = new Date(data.fecha_salida);
+        setCheckoutTime(departureDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
+      }
+    } catch (error: any) {
+      setLocationError(error.response?.data?.message || "Error al registrar salida en el servidor.");
+    } finally {
       setIsCheckingOut(false);
-      setLocationError("Tu navegador o dispositivo no soporta la función de geolocalización.");
     }
   };
 

@@ -16,7 +16,7 @@ class AsistenciaService {
     return data;
   }
 
-  async checkIn(latitud: number, longitud: number): Promise<AsistenciaResponse> {
+  async checkIn(latitud?: number, longitud?: number): Promise<AsistenciaResponse> {
     const { data } = await axiosInstance.post('/asistencias/check-in', {
       latitud,
       longitud,
@@ -24,7 +24,7 @@ class AsistenciaService {
     return data;
   }
 
-  async checkOut(latitud: number, longitud: number): Promise<AsistenciaResponse> {
+  async checkOut(latitud?: number, longitud?: number): Promise<AsistenciaResponse> {
     const { data } = await axiosInstance.patch('/asistencias/check-out', {
       latitud,
       longitud,
