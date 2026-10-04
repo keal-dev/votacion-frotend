@@ -40,6 +40,7 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
       { href: "/asignaciones", label: "Asignaciones", icon: <AssignmentOutlinedIcon fontSize="small" />, roles: ["ADMIN", "COORDINADOR"] },
       { href: "/resultados", label: "Resultados", icon: <BarChartOutlinedIcon fontSize="small" />, roles: ["ADMIN", "COORDINADOR"] },
       { href: "/auditoria", label: "Auditoría", icon: <FactCheckOutlinedIcon fontSize="small" />, roles: ["ADMIN", "COORDINADOR"] },
+      { href: "/ingreso-manual", label: "Digitación Rápida", icon: <EditOutlinedIcon fontSize="small" />, roles: ["ADMIN", "COORDINADOR"] },
       { href: "/configuracion", label: "Configuración", icon: <Settings fontSize="small" />, roles: ["ADMIN", "COORDINADOR"] },
       { href: "/encuestas", label: "Boca de Urna", icon: <PollOutlinedIcon fontSize="small" />, roles: ["ADMIN", "COORDINADOR"] },
     ];
