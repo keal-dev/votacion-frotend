@@ -82,6 +82,25 @@ export default function IngresoManualPage() {
             data.forEach((c: any) => {
                 initialVotos[`voto_${c.id}`] = '';
             });
+
+            // Intentar cargar acta existente si hay una guardada parcialmente
+            try {
+                const actaRes = await axiosInstance.get(`/actas/mesa/${mesa.id}`);
+                if (actaRes.data && actaRes.data.votos) {
+                    actaRes.data.votos.forEach((v: any) => {
+                        if (v.candidato) {
+                            if (v.cantidad > 0) initialVotos[`voto_${v.candidato.id}`] = v.cantidad.toString();
+                        } else {
+                            const tipo = v.tipo.toLowerCase();
+                            const nivel = v.nivel.toLowerCase();
+                            if (v.cantidad > 0) initialVotos[`voto_${tipo}_${nivel}`] = v.cantidad.toString();
+                        }
+                    });
+                }
+            } catch (e) {
+                // Ignore if no acta found
+            }
+
             setVotos(initialVotos);
         } catch (error) {
             console.error('Error fetching candidates', error);
@@ -108,7 +127,7 @@ export default function IngresoManualPage() {
         return total;
     };
 
-    const submitManualActa = async () => {
+    const submitManualActa = async (isPartial: boolean = false) => {
         if (!selectedMesa) return;
         
         const totReg = calcularTotalTab('REGIONAL');
@@ -126,7 +145,7 @@ export default function IngresoManualPage() {
 
         const nivelesActivos = niveles.filter(n => candidatos.some(c => c.cargo === n.name));
         
-        if (nivelesActivos.length > 0) {
+        if (nivelesActivos.length > 0 && !isPartial) {
             const firstTotal = nivelesActivos[0].tot;
             const todosIguales = nivelesActivos.every(n => n.tot === firstTotal);
             if (!todosIguales) {
@@ -143,7 +162,11 @@ export default function IngresoManualPage() {
             }
         }
 
-        if (!confirm(`¿Estás seguro de registrar esta acta manualmente para la Mesa ${selectedMesa.numero_mesa}?`)) return;
+        if (isPartial) {
+            if (!confirm(`¿Estás seguro de guardar el progreso de esta acta de la Mesa ${selectedMesa.numero_mesa}? No se enviará como completada aún.`)) return;
+        } else {
+            if (!confirm(`¿Estás seguro de registrar y FINALIZAR esta acta manualmente para la Mesa ${selectedMesa.numero_mesa}?`)) return;
+        }
 
         setSubmitting(true);
         try {
@@ -160,11 +183,14 @@ export default function IngresoManualPage() {
 
             await axiosInstance.post('/actas/manual', {
                 mesaId: selectedMesa.id,
-                votos: finalVotos
+                votos: finalVotos,
+                isPartial
             });
 
-            setSuccessMsg("¡Acta registrada exitosamente!");
-            setMesas(mesas.map(m => m.id === selectedMesa.id ? { ...m, estado: 'ENVIADA' as any } : m));
+            setSuccessMsg(isPartial ? "¡Progreso guardado exitosamente!" : "¡Acta registrada exitosamente!");
+            if (!isPartial) {
+                setMesas(mesas.map(m => m.id === selectedMesa.id ? { ...m, estado: 'ENVIADA' as any } : m));
+            }
             setTimeout(() => {
                 setSelectedMesa(null);
             }, 2000);
@@ -400,18 +426,27 @@ export default function IngresoManualPage() {
                                             <span className="text-[14px] font-bold text-[#172b4d]">Pestaña {activeTab}</span>
                                         </div>
                                     </div>
-                                    <button
-                                        onClick={submitManualActa}
-                                        disabled={submitting}
-                                        className="bg-blue-600 text-white font-bold px-8 py-3.5 rounded-xl flex items-center gap-2 hover:bg-blue-700 transition-all shadow-lg shadow-blue-600/20 disabled:opacity-70 hover:scale-[1.02] active:scale-[0.98] text-[14px]"
-                                    >
-                                        {submitting ? (
-                                            <>
-                                                <div className="h-5 w-5 animate-spin rounded-full border-2 border-white border-t-transparent"></div>
-                                                Guardando...
-                                            </>
-                                        ) : 'Guardar y Enviar Acta'}
-                                    </button>
+                                    <div className="flex gap-3">
+                                        <button
+                                            onClick={() => submitManualActa(true)}
+                                            disabled={submitting}
+                                            className="bg-white border-2 border-slate-200 text-slate-700 font-bold px-6 py-3.5 rounded-xl flex items-center gap-2 hover:bg-slate-50 hover:border-slate-300 transition-all disabled:opacity-70 hover:scale-[1.02] active:scale-[0.98] text-[14px]"
+                                        >
+                                            Guardar Progreso
+                                        </button>
+                                        <button
+                                            onClick={() => submitManualActa(false)}
+                                            disabled={submitting}
+                                            className="bg-blue-600 text-white font-bold px-8 py-3.5 rounded-xl flex items-center gap-2 hover:bg-blue-700 transition-all shadow-lg shadow-blue-600/20 disabled:opacity-70 hover:scale-[1.02] active:scale-[0.98] text-[14px]"
+                                        >
+                                            {submitting ? (
+                                                <>
+                                                    <div className="h-5 w-5 animate-spin rounded-full border-2 border-white border-t-transparent"></div>
+                                                    Guardando...
+                                                </>
+                                            ) : 'Guardar y Enviar Acta'}
+                                        </button>
+                                    </div>
                                 </div>
                             </div>
                         )}
